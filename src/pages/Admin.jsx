@@ -4,6 +4,7 @@ import BankAccountsWidget from '../components/BankAccountsWidget'
 import ModelsWidget from '../components/ModelsWidget'
 import BackgroundUploadWidget from '../components/BackgroundUploadWidget'
 import TeamMembersWidget from '../components/TeamMembersWidget'
+import BulkPaymentImport from '../components/BulkPaymentImport'
 import { getBankAccountStats } from '../api/banks'
 import { TEAM_ID } from '../api/config'
 
@@ -116,6 +117,11 @@ function Admin() {
         {/* Team Members Widget */}
         <div className="mt-6">
           <TeamMembersWidget />
+        </div>
+
+        {/* Bulk Payment Import */}
+        <div className="mt-6">
+          <BulkPaymentImport />
         </div>
       </div>
     </div>

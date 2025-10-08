@@ -1,0 +1,53 @@
+BULK PAYMENT IMPORT TEMPLATE
+============================
+
+Format: Date (M/D/YYYY) [TAB] Client Name [TAB] Amount [TAB] Is New (yes/no) [TAB] Model Name
+
+Example data (copy and paste into the import tool):
+
+10/6/2025	Luděk Mora	300	no	NATÁLIE
+10/6/2025	Miroslav Čermák	400	no	NATÁLIE
+10/6/2025	Mokroš Petr	800	no	NATÁLIE
+10/6/2025	Martin	500	no	NATÁLIE
+10/6/2025	Drahoslav Šuta	1500	no	NATÁLIE
+10/6/2025	Miroslav Krůta	600	no	NATÁLIE
+10/6/2025	Vítězslav Ivičič	200	no	NATÁLIE
+10/6/2025	Mora Luděk	650	no	JANA
+
+IMPORTANT NOTES:
+================
+
+1. Columns MUST be separated by TAB characters (not spaces)
+2. Date format: M/D/YYYY (e.g., 10/6/2025 = October 6, 2025)
+3. Is New: "yes" or "no" (case-insensitive)
+   - If "yes", the client's created_at date will be set to the payment date
+   - If "no", it will use today's date if creating a new client
+4. Model names are matched against user display_name or username (case-insensitive)
+5. Client names are matched case-insensitively (duplicate names will use the same client)
+6. All amounts are in CZK
+
+HOW IT WORKS:
+=============
+
+1. Paste your TSV data into the textarea
+2. Click "Analyzovat data" to preview what will be imported
+3. Review the preview showing:
+   - Total payments and amounts
+   - New vs existing clients
+   - Breakdown by model
+   - Sample of first 5 records
+4. Click "Importovat" to actually create the payment records
+5. The tool will:
+   - Find or create clients automatically
+   - Link payments to the correct model/user
+   - Set client creation dates for new clients
+   - Show you success/error results
+
+TIPS:
+=====
+
+- You can copy directly from Excel/Google Sheets (preserves TAB separators)
+- The preview shows exactly what will be imported before you commit
+- If there are parsing errors, they'll be shown before import
+- The import is atomic - either all succeed or none are created (per payment)
+
