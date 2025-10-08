@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getTeamUsers, deleteUser } from '../api/queries'
+import { getTeamUsers, deleteUser, updateUser } from '../api/queries'
 import { TEAM_ID } from '../api/config'
 import { useConfirm } from '../hooks/useConfirm'
 
@@ -8,6 +8,8 @@ function TeamMembersWidget() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [editingUserId, setEditingUserId] = useState(null)
+  const [editedName, setEditedName] = useState('')
 
   const loadMembers = async () => {
     if (!TEAM_ID) return
@@ -26,6 +28,31 @@ function TeamMembersWidget() {
   useEffect(() => {
     loadMembers()
   }, [])
+
+  const handleEditMember = (userId, currentName) => {
+    setEditingUserId(userId)
+    setEditedName(currentName || '')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null)
+    setEditedName('')
+  }
+
+  const handleSaveName = async (userId) => {
+    try {
+      setError('')
+      const updatedUser = await updateUser(userId, TEAM_ID, { display_name: editedName })
+      if (updatedUser) {
+        setMembers(prev => prev.map(m => m.id === userId ? updatedUser : m))
+      }
+      setEditingUserId(null)
+      setEditedName('')
+    } catch (err) {
+      console.error('Failed to update user name:', err)
+      setError('Změna jména selhala')
+    }
+  }
 
   const handleDeleteMember = async (userId, displayName, username) => {
     const memberName = displayName || username
@@ -109,24 +136,77 @@ function TeamMembersWidget() {
                     </div>
                   )}
                   <div className="flex-1">
-                    <div className="text-pearl font-medium">
-                      {member.display_name || member.username}
-                    </div>
-                    <div className="text-pearl/60 text-sm">
-                      @{member.username}
-                      {member.email && ` • ${member.email}`}
-                    </div>
+                    {editingUserId === member.id ? (
+                      <input
+                        type="text"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveName(member.id)
+                          } else if (e.key === 'Escape') {
+                            handleCancelEdit()
+                          }
+                        }}
+                        className="w-full bg-obsidian border border-neon-orchid rounded-lg px-3 py-1 text-pearl focus:border-neon-orchid focus:shadow-glow-purple outline-none"
+                        placeholder="Jméno uživatele"
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <div className="text-pearl font-medium">
+                          {member.display_name || member.username}
+                        </div>
+                        <div className="text-pearl/60 text-sm">
+                          @{member.username}
+                          {member.email && ` • ${member.email}`}
+                        </div>
+                      </>
+                    )}
                   </div>
                   {getRoleBadge(member.role)}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteMember(member.id, member.display_name, member.username)}
-                  className="ml-3 px-3 py-1 rounded-lg bg-crimson/20 hover:bg-crimson/40 text-pearl text-sm font-medium transition-all"
-                  title="Odstranit člena"
-                >
-                  🗑️ Odstranit
-                </button>
+                <div className="flex items-center gap-2 ml-3">
+                  {editingUserId === member.id ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveName(member.id)}
+                        className="px-3 py-1 rounded-lg bg-gradient-to-r from-neon-orchid to-crimson text-white text-sm font-medium hover:shadow-glow-purple transition-all"
+                        title="Uložit"
+                      >
+                        ✓ Uložit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-3 py-1 rounded-lg bg-velvet-gray/40 hover:bg-velvet-gray/60 text-pearl text-sm font-medium transition-all"
+                        title="Zrušit"
+                      >
+                        ✕ Zrušit
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleEditMember(member.id, member.display_name)}
+                        className="px-3 py-1 rounded-lg bg-neon-orchid/20 hover:bg-neon-orchid/40 text-pearl text-sm font-medium transition-all"
+                        title="Upravit jméno"
+                      >
+                        ✏️ Upravit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMember(member.id, member.display_name, member.username)}
+                        className="px-3 py-1 rounded-lg bg-crimson/20 hover:bg-crimson/40 text-pearl text-sm font-medium transition-all"
+                        title="Odstranit člena"
+                      >
+                        🗑️ Odstranit
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))
           )}

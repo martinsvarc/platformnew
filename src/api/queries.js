@@ -346,6 +346,24 @@ export async function getTeamUsers(teamId) {
   return rows
 }
 
+export async function updateUser(userId, teamId, fields) {
+  // Update user fields (currently supporting display_name)
+  const updates = []
+  if (Object.prototype.hasOwnProperty.call(fields, 'display_name')) {
+    updates.push(sql`display_name = ${fields.display_name || null}`)
+  }
+  
+  if (updates.length === 0) return null
+  
+  const result = await sql`
+    update users
+    set ${updates[0]}
+    where id = ${userId} and team_id = ${teamId}
+    returning id, username, display_name, email, role, status, avatar_url
+  `
+  return result[0]
+}
+
 export async function deleteUser(userId, teamId) {
   // Soft delete: set deleted_at timestamp
   const result = await sql`
