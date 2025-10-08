@@ -157,7 +157,7 @@ function League({ teamId, selectedChatter, refreshKey }) {
       {/* Top Performers List */}
       <div className="unified-card p-3 flex-1 flex flex-col">
         <h4 className="text-pearl font-bold mb-3 text-center text-sm">
-          {activeTab === 'daily' ? '🏆 Denní Výkonnost' : '🏆 Měsíční Průměr / Den'}
+          {activeTab === 'daily' ? '🏆 Denní Výkonnost' : '🏆 Měsíční Body'}
         </h4>
         <div className="space-y-2 flex-1 overflow-y-auto">
           {sortedLeagueData.length === 0 ? (

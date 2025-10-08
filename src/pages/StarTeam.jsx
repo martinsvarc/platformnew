@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
 import { getTeamUsers } from '../api/queries'
-import { TEAM_ID } from '../api/config'
+import { useAuth } from '../contexts/AuthContext'
 
 function StarTeam() {
+  const { user } = useAuth()
   const [teamMembers, setTeamMembers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [lightningKey, setLightningKey] = useState(0)
@@ -10,9 +11,13 @@ function StarTeam() {
 
   useEffect(() => {
     const loadTeam = async () => {
-      if (!TEAM_ID) return
+      const teamId = user?.team_id
+      if (!teamId) {
+        setIsLoading(false)
+        return
+      }
       try {
-        const users = await getTeamUsers(TEAM_ID)
+        const users = await getTeamUsers(teamId)
         setTeamMembers(users)
       } catch (error) {
         console.error('Failed to load team:', error)
@@ -21,7 +26,7 @@ function StarTeam() {
       }
     }
     loadTeam()
-  }, [])
+  }, [user?.team_id])
 
   // Play thunder sound on loop
   useEffect(() => {

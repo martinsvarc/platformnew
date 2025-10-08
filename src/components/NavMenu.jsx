@@ -84,7 +84,8 @@ function NavMenu() {
     { path: '/tvuj-vykon', label: 'Tvůj Výkon', icon: '📈' },
     { path: '/klientiaplatby', label: 'Klienti a Platby', icon: '🗂️' },
     { path: '/zalozky', label: 'Záložky', icon: '🔖' },
-    { path: '/admin', label: 'Admin', icon: '🛠️', adminOnly: true }
+    { path: '/admin', label: 'Admin', icon: '🛠️', adminOnly: true },
+    { path: '/analytics', label: 'Analytika', icon: '💹', adminOnly: true }
   ]
 
   // Filter navigation items based on user role
@@ -215,6 +216,21 @@ function NavMenu() {
             />
           </div>
           <div className="text-center">
+            {/* Team Name - Gold and Shiny */}
+            {user?.team_name && (
+              <h2 className="text-xl font-bold mb-2 animate-shimmer-gold" style={{
+                background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 25%, #FFD700 50%, #FFA500 75%, #FFD700 100%)',
+                backgroundSize: '200% auto',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
+                filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.4))'
+              }}>
+                {user.team_name}
+              </h2>
+            )}
+            {/* User Name */}
             <h3 className="text-pearl font-semibold text-lg">
               {user?.display_name || user?.username || 'Uživatel'}
             </h3>

@@ -3,12 +3,12 @@ import { sql } from './db'
 export async function getTeamTotals(teamId) {
   const rows = await sql`
     select
-      coalesce(sum(case when (paid_at AT TIME ZONE 'Europe/Prague')::date = (now() AT TIME ZONE 'Europe/Prague')::date then (amount - COALESCE(fee_amount, 0)) else 0 end), 0)::float as daily,
-      coalesce(sum(case when (paid_at AT TIME ZONE 'Europe/Prague')::date >= date_trunc('week', (now() AT TIME ZONE 'Europe/Prague')::date) 
-                        and (paid_at AT TIME ZONE 'Europe/Prague')::date < date_trunc('week', (now() AT TIME ZONE 'Europe/Prague')::date) + interval '7 days'
+      coalesce(sum(case when ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date = ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date then (amount - COALESCE(fee_amount, 0)) else 0 end), 0)::float as daily,
+      coalesce(sum(case when ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date >= date_trunc('week', ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) 
+                        and ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date < date_trunc('week', ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) + interval '7 days'
                         then (amount - COALESCE(fee_amount, 0)) else 0 end), 0)::float as weekly,
-      coalesce(sum(case when (paid_at AT TIME ZONE 'Europe/Prague')::date >= date_trunc('month', (now() AT TIME ZONE 'Europe/Prague')::date) 
-                        and (paid_at AT TIME ZONE 'Europe/Prague')::date < date_trunc('month', (now() AT TIME ZONE 'Europe/Prague')::date) + interval '1 month'
+      coalesce(sum(case when ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date >= date_trunc('month', ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) 
+                        and ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date < date_trunc('month', ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) + interval '1 month'
                         then (amount - COALESCE(fee_amount, 0)) else 0 end), 0)::float as monthly
     from payments
     where team_id = ${teamId}
@@ -115,7 +115,7 @@ export async function getUserTotals(teamId, userId, { from = null, to = null } =
   const rows = await sql`
     select
       coalesce(sum(amount - fee_amount),0)::float as total,
-      coalesce(sum(case when paid_at::date = (now() AT TIME ZONE 'Europe/Prague')::date then amount - fee_amount else 0 end),0)::float as today,
+      coalesce(sum(case when ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date = ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date then amount - fee_amount else 0 end),0)::float as today,
       coalesce(sum(case when paid_at >= now() - interval '60 minutes' then amount - fee_amount else 0 end),0)::float as last_hour
     from payments
     where team_id = ${teamId}
@@ -178,8 +178,8 @@ export async function listClients(teamId, { search = '' } = {}) {
   const debugPetrStats = await sql`
     with p as (
       select c.id as client_id,
-             max(p.paid_at::date) as last_sent,
-             sum(case when p.paid_at >= (now() AT TIME ZONE 'Europe/Prague') - interval '29 days' then (p.amount - COALESCE(p.fee_amount, 0)) else 0 end)::float as last_month,
+             max(((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) as last_sent,
+             sum(case when ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date >= (((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date - interval '29 days') then (p.amount - COALESCE(p.fee_amount, 0)) else 0 end)::float as last_month,
              sum((p.amount - COALESCE(p.fee_amount, 0)))::float as total
       from clients c
       left join payments p on p.client_id = c.id
@@ -231,8 +231,8 @@ export async function listClients(teamId, { search = '' } = {}) {
   const rows = await sql`
     with p as (
       select c.id as client_id,
-             max(p.paid_at::date) as last_sent,
-             sum(case when p.paid_at >= (now() AT TIME ZONE 'Europe/Prague') - interval '29 days' then (p.amount - COALESCE(p.fee_amount, 0)) else 0 end)::float as last_month,
+             max(((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) as last_sent,
+             sum(case when ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date >= (((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date - interval '29 days') then (p.amount - COALESCE(p.fee_amount, 0)) else 0 end)::float as last_month,
              sum((p.amount - COALESCE(p.fee_amount, 0)))::float as total,
              (select u.display_name 
               from payments p2 
@@ -321,6 +321,21 @@ export async function listPayments(teamId, { from = null, to = null, platform = 
   return rows
 }
 
+export async function getClientPayments(teamId, clientName) {
+  const rows = await sql`
+    select p.id, p.paid_at, p.paid_date, p.amount::float as amount, (p.amount - COALESCE(p.fee_amount, 0))::float as net_amount,
+           p.currency, p.prodano, p.platforma, p.model, p.banka, p.status,
+           c.name as client_name, u.display_name as chatter
+    from payments p
+    left join clients c on c.id = p.client_id
+    left join users u on u.id = p.user_id
+    where p.team_id = ${teamId}
+      and c.name = ${clientName}
+    order by p.paid_at desc
+  `
+  return rows
+}
+
 export async function getTeamUsers(teamId) {
   const rows = await sql`
     select id, username, display_name, email, role, status, avatar_url
@@ -362,7 +377,7 @@ export async function getDailyPaymentTimeline(teamId, userId = null) {
       extract(minute from paid_at AT TIME ZONE 'Europe/Prague') as minute
     from payments
     where team_id = ${teamId}
-      and paid_at::date = (now() AT TIME ZONE 'Europe/Prague')::date
+      and ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date = ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date
       ${userId ? sql`and user_id = ${userId}` : sql``}
     order by paid_at asc
   `
@@ -393,40 +408,68 @@ export async function getLeagueData(teamId, userId = null) {
   }
   
   try {
-    // Get daily and monthly totals for team users (Prague timezone) - exclude admins
+    // Get daily and monthly points for team users (Prague timezone with 2 AM reset) - exclude admins
+    // Monthly points calculation:
+    // - Regular payments = 1x points
+    // - New client payments (first payment ever on that day) = 2x points for that day
     const rows = await sql`
+      with client_first_payment as (
+        -- Get the first payment date for each client (with 2 AM reset)
+        select 
+          client_id,
+          min(((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) as first_payment_date
+        from payments
+        where team_id = ${teamId}
+        group by client_id
+      ),
+      user_monthly_points as (
+        -- Calculate monthly points with new client bonus (with 2 AM reset)
+        select 
+          p.user_id,
+          sum(
+            case 
+              -- If this payment is from a new client on their first day, count 2x
+              when cfp.first_payment_date = ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date 
+              then (p.amount - p.fee_amount) * 2
+              -- Otherwise count 1x
+              else (p.amount - p.fee_amount)
+            end
+          ) as monthly_points
+        from payments p
+        left join client_first_payment cfp on cfp.client_id = p.client_id
+        where p.team_id = ${teamId}
+          and ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date >= date_trunc('month', ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date)
+          and ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date < date_trunc('month', ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) + interval '1 month'
+        group by p.user_id
+      )
       select 
         u.id,
         u.display_name,
         u.username,
         u.avatar_url,
-        coalesce(sum(case when p.paid_at::date = (now() AT TIME ZONE 'Europe/Prague')::date then p.amount - p.fee_amount else 0 end), 0)::float as daily,
-        coalesce(sum(case when date_trunc('month', p.paid_at::date) = date_trunc('month', (now() AT TIME ZONE 'Europe/Prague')::date) then p.amount - p.fee_amount else 0 end), 0)::float as monthly_total,
-        coalesce(sum(case when p.paid_at >= now() - interval '60 minutes' then p.amount - p.fee_amount else 0 end), 0)::float as last_hour,
-        extract(day from (now() AT TIME ZONE 'Europe/Prague')::date)::integer as days_in_month
+        coalesce(sum(case when ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date = ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date then p.amount - p.fee_amount else 0 end), 0)::float as daily,
+        coalesce(ump.monthly_points, 0)::float as monthly_points,
+        coalesce(sum(case when p.paid_at >= now() - interval '60 minutes' then p.amount - p.fee_amount else 0 end), 0)::float as last_hour
       from users u
       left join payments p on p.user_id = u.id and p.team_id = ${teamId}
+      left join user_monthly_points ump on ump.user_id = u.id
       where u.team_id = ${teamId} and u.deleted_at is null and u.role != 'admin'
         ${userId ? sql`and u.id = ${userId}` : sql``}
-      group by u.id, u.display_name, u.username, u.avatar_url
+      group by u.id, u.display_name, u.username, u.avatar_url, ump.monthly_points
       order by u.display_name
     `
     
     console.log('Raw league data from database:', rows)
     
-    // Calculate trends (last 60 minutes) and monthly average
+    // Format league data with monthly points instead of average
     const leagueData = rows.map(user => {
-      const monthlyTotal = Number(user.monthly_total)
-      const daysInMonth = user.days_in_month || 1
-      const monthlyAverage = monthlyTotal / daysInMonth
-      
       return {
         id: user.id,
         name: user.display_name || user.username,
         avatar_url: user.avatar_url,
         daily: Number(user.daily),
-        monthly: monthlyAverage,
-        monthly_total: monthlyTotal,
+        monthly: Number(user.monthly_points), // Now showing points instead of average
+        monthly_points: Number(user.monthly_points),
         trend: Number(user.last_hour)
       }
     })
@@ -455,7 +498,7 @@ export async function getClientStats(teamId, userId = null) {
   }
   
   try {
-    // Get client statistics for today (Prague timezone)
+    // Get client statistics for today (Prague timezone, with 2 AM reset)
     const rows = await sql`
       with today_payments as (
         select 
@@ -464,14 +507,14 @@ export async function getClientStats(teamId, userId = null) {
           sum(p.amount - p.fee_amount) as daily_amount
         from payments p
         where p.team_id = ${teamId}
-          and p.paid_at::date = (now() AT TIME ZONE 'Europe/Prague')::date
+          and ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date = ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date
           ${userId ? sql`and p.user_id = ${userId}` : sql``}
         group by p.client_id, p.user_id
       ),
       client_first_payment as (
         select 
           p.client_id,
-          min(p.paid_at::date) as first_payment_date
+          min(((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date) as first_payment_date
         from payments p
         where p.team_id = ${teamId}
           ${userId ? sql`and p.user_id = ${userId}` : sql``}
@@ -479,7 +522,7 @@ export async function getClientStats(teamId, userId = null) {
       )
       select 
         -- Count of new clients (clients whose first payment was today)
-        count(case when cfp.first_payment_date = (now() AT TIME ZONE 'Europe/Prague')::date then 1 end) as new_clients,
+        count(case when cfp.first_payment_date = ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date then 1 end) as new_clients,
         -- Total number of unique clients who made payments today
         count(distinct tp.client_id) as total_clients,
         -- Average amount per client today
@@ -533,7 +576,7 @@ export async function debugClientPaymentStats(teamId) {
       c.name as client_name,
       count(p.id) as payment_count,
       sum((p.amount - COALESCE(p.fee_amount, 0))) as total_amount,
-      sum(case when p.paid_at::date >= (now() AT TIME ZONE 'Europe/Prague')::date - interval '29 days' then (p.amount - COALESCE(p.fee_amount, 0)) else 0 end) as last_30_days
+      sum(case when ((p.paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date >= (((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date - interval '29 days') then (p.amount - COALESCE(p.fee_amount, 0)) else 0 end) as last_30_days
     from clients c
     left join payments p on p.client_id = c.id
     where c.team_id = ${teamId}

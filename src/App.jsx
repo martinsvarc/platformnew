@@ -20,6 +20,7 @@ import TvujVykon from './pages/TvujVykon'
 import Klientiaplatby from './pages/Klientiaplatby'
 import Admin from './pages/Admin'
 import Analyze from './pages/Analyze'
+import Analytics from './pages/Analytics'
 import Zalozky from './pages/Zalozky'
 import StarTeam from './pages/StarTeam'
 import { getBackgroundUrl } from './api/settings'
@@ -109,6 +110,11 @@ function AppContent() {
           <Route path="/admin" element={
             <AdminRoute>
               <Admin />
+            </AdminRoute>
+          } />
+          <Route path="/analytics" element={
+            <AdminRoute>
+              <Analytics />
             </AdminRoute>
           } />
           <Route path="/analyze" element={

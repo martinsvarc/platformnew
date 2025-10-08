@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { listClients, updateClient, listPayments, debugRecentPayments, debugClientPaymentStats } from '../api/queries'
+import { listClients, updateClient, listPayments, getClientPayments, debugRecentPayments, debugClientPaymentStats } from '../api/queries'
 import { TEAM_ID } from '../api/config'
 import TableSkeleton from '../components/TableSkeleton'
 import { useToast } from '../contexts/ToastContext'
@@ -12,6 +12,7 @@ function Klientiaplatby() {
   const [salaryFilter, setSalaryFilter] = useState('all') // all | has | none
   const [payoutDayFilter, setPayoutDayFilter] = useState('all') // all | 1..31
   const [chatterFilter, setChatterFilter] = useState('all') // all | specific chatter name
+  const [modelFilter, setModelFilter] = useState('all') // all | specific model name
   const [sortBy, setSortBy] = useState('lastSentDesc') // lastSentDesc | lastSentAsc | lastMonthDesc | totalDesc | nameAsc
   const [notesMap, setNotesMap] = useState({})
   const [notesModal, setNotesModal] = useState({ open: false, row: null, text: '' })
@@ -266,25 +267,36 @@ function Klientiaplatby() {
     }
   }
 
-  const openBanksModal = (jmeno) => {
-    const clientPayments = platbyData.filter(p => p.klient === jmeno)
-    const uniqueBanks = [...new Set(clientPayments.map(p => p.banka).filter(Boolean))]
-    setBanksModal({ open: true, jmeno, banks: uniqueBanks })
+  const openBanksModal = async (jmeno) => {
+    try {
+      // Fetch all payments for this client to get complete bank history
+      const rows = await getClientPayments(TEAM_ID, jmeno)
+      const uniqueBanks = [...new Set(rows.map(p => p.banka).filter(Boolean))]
+      setBanksModal({ open: true, jmeno, banks: uniqueBanks })
+    } catch (e) {
+      console.error('Failed to load client banks:', e)
+      // Fallback to using platbyData if API call fails
+      const clientPayments = platbyData.filter(p => p.klient === jmeno)
+      const uniqueBanks = [...new Set(clientPayments.map(p => p.banka).filter(Boolean))]
+      setBanksModal({ open: true, jmeno, banks: uniqueBanks })
+    }
   }
 
   const closeBanksModal = () => setBanksModal({ open: false, jmeno: null, banks: [] })
 
   const loadClientTransactions = async (clientName) => {
     try {
-      const clientPayments = platbyData.filter(p => p.klient === clientName)
-      const transactions = clientPayments.map(p => ({
-        datum: p.date,
-        castka: p.castka,
-        chatter: p.chatter,
-        model: p.modelka,
-        banka: p.banka,
-        platforma: p.platforma,
-        prodano: p.prodano
+      // Fetch all payments for this client directly from the database
+      const rows = await getClientPayments(TEAM_ID, clientName)
+      
+      const transactions = rows.map(p => ({
+        datum: p.paid_date || p.paid_at,
+        castka: p.amount,
+        chatter: p.chatter || '',
+        model: p.model || '',
+        banka: p.banka || '',
+        platforma: p.platforma || '',
+        prodano: p.prodano || ''
       }))
       
       // Update the client's transactions
@@ -295,6 +307,7 @@ function Klientiaplatby() {
       ))
     } catch (e) {
       console.error('Failed to load client transactions:', e)
+      toast.error('Nepodařilo se načíst transakce klienta')
     }
   }
 
@@ -389,6 +402,16 @@ function Klientiaplatby() {
       list = list.filter((r) => r.chatter === chatterFilter)
     }
 
+    // Model filter - only show clients who have payments on the selected model
+    if (modelFilter !== 'all') {
+      list = list.filter((client) => {
+        // Check if this client has any payments on the selected model
+        return platbyData.some(payment => 
+          payment.klient === client.jmeno && payment.modelka === modelFilter
+        )
+      })
+    }
+
     // Sorting
     list.sort((a, b) => {
       if (sortBy === 'lastSentDesc') return daysSince(a.lastSent) - daysSince(b.lastSent) // newer first (smaller days)
@@ -400,11 +423,15 @@ function Klientiaplatby() {
     })
 
     return list
-  }, [klientiData, searchQuery, lastSentFilter, salaryFilter, payoutDayFilter, chatterFilter, sortBy])
+  }, [klientiData, searchQuery, lastSentFilter, salaryFilter, payoutDayFilter, chatterFilter, modelFilter, sortBy, platbyData])
 
   const uniqueClientChatters = useMemo(() => {
     return Array.from(new Set(klientiData.map((c) => c.chatter))).filter(Boolean)
   }, [klientiData])
+
+  const uniqueClientModels = useMemo(() => {
+    return Array.from(new Set(platbyData.map((p) => p.modelka))).filter(Boolean).sort()
+  }, [platbyData])
 
   return (
     <div className="h-screen overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-6 lg:ml-64 animate-fade-in">
@@ -446,7 +473,7 @@ function Klientiaplatby() {
 
         {/* Klienti Toolbar */}
         {activeTab === 'klienti' && (
-          <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2">
             <input
               type="text"
               placeholder="Hledat klienta..."
@@ -478,7 +505,7 @@ function Klientiaplatby() {
               <option value="none">Nemá</option>
             </select>
             <select
-              className="bg-obsidian border border-velvet-gray rounded-lg px-3 py-2 text-pearl focus:border-neon-orchid focus:shadow-glow-purple outline-none w-40"
+              className="bg-obsidian border border-velvet-gray rounded-lg px-3 py-2 text-pearl focus:border-neon-orchid focus:shadow-glow-purple outline-none"
               value={payoutDayFilter}
               onChange={(e) => setPayoutDayFilter(e.target.value)}
               title="Filtrovat podle dne výplaty"
@@ -498,6 +525,29 @@ function Klientiaplatby() {
               {uniqueClientChatters.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
+            </select>
+            <select
+              className="bg-obsidian border border-velvet-gray rounded-lg px-3 py-2 text-pearl focus:border-neon-orchid focus:shadow-glow-purple outline-none"
+              value={modelFilter}
+              onChange={(e) => setModelFilter(e.target.value)}
+              title="Filtrovat podle modelu"
+            >
+              <option value="all">Model: Vše</option>
+              {uniqueClientModels.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <select
+              className="bg-obsidian border border-velvet-gray rounded-lg px-3 py-2 text-pearl focus:border-neon-orchid focus:shadow-glow-purple outline-none"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              title="Seřadit"
+            >
+              <option value="lastSentDesc">Nejnovější platba</option>
+              <option value="lastSentAsc">Nejstarší platba</option>
+              <option value="lastMonthDesc">Nejvíc za 30 dnů</option>
+              <option value="totalDesc">Nejvíc celkem</option>
+              <option value="nameAsc">Jméno A→Z</option>
             </select>
             <button
               onClick={loadClientData}
@@ -838,24 +888,6 @@ function Klientiaplatby() {
                 <button onClick={closeBanksModal} className="px-4 py-2 rounded-lg bg-gradient-to-r from-neon-orchid to-crimson text-white shadow-glow-purple">Zavřít</button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Sorting controls (visible on Klienti) */}
-        {activeTab === 'klienti' && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <label className="text-pearl/70 text-sm">Seřadit:</label>
-            <select
-              className="bg-obsidian border border-velvet-gray rounded-lg px-3 py-2 text-pearl focus:border-neon-orchid focus:shadow-glow-purple outline-none"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="lastSentDesc">Nejnovější platba</option>
-              <option value="lastSentAsc">Nejstarší platba</option>
-              <option value="lastMonthDesc">Nejvíc za 30 dnů</option>
-              <option value="totalDesc">Nejvíc celkem</option>
-              <option value="nameAsc">Jméno A→Z</option>
-            </select>
           </div>
         )}
 
