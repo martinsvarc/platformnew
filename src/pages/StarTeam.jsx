@@ -30,11 +30,11 @@ function StarTeam() {
     loadTeam()
   }, [user?.team_id])
 
-  // Play thunder sound on loop
+  // Audio is muted by default
+  // Users can unmute if they want by clicking on the page
   useEffect(() => {
     if (audioRef.current && !isLoading) {
-      audioRef.current.volume = 0.3 // Set to 30% volume
-      audioRef.current.play().catch(err => console.log('Audio play failed:', err))
+      audioRef.current.volume = 0.3 // Set to 30% volume when unmuted
     }
   }, [isLoading])
 
@@ -110,12 +110,13 @@ function StarTeam() {
 
   return (
     <div className="h-screen relative overflow-hidden flex items-center justify-center lg:pl-64 p-4">
-      {/* Thunder sound effect - plays on loop */}
+      {/* Thunder sound effect - plays on loop (muted by default) */}
       <audio 
         ref={audioRef}
         src="https://res.cloudinary.com/dmbzcxhjn/video/upload/v1759812360/10_Minutes_of_Rain_and_Thunderstorm_Sounds_For_Focus_Relaxing_and_Sleep_%EF%B8%8F_Epidemic_ASMR_-_Overtone_Ambient_youtube_welf49.mp3"
         loop
         autoPlay
+        muted
       />
 
       {/* Content - Centered accounting for nav menu */}
