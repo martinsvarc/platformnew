@@ -19,6 +19,7 @@ import BiometricVerification from './pages/BiometricVerification'
 import PINVerification from './pages/PINVerification'
 import PINSetup from './components/PINSetup'
 import TwoFASetupPrompt from './components/TwoFASetupPrompt'
+import ClearStorage from './pages/ClearStorage'
 import Skore from './pages/Skore'
 import { useAuth } from './contexts/AuthContext'
 import TvujVykon from './pages/TvujVykon'
@@ -40,7 +41,8 @@ function AppContent() {
                      location.pathname === '/adminstart' || 
                      location.pathname === '/biometric-verify' || 
                      location.pathname === '/pin-verify' ||
-                     location.pathname === '/setup-pin'
+                     location.pathname === '/setup-pin' ||
+                     location.pathname === '/clear-storage'
   const isAdminPage = location.pathname === '/admin'
   const shouldShowBackground = !hideNav && !isAuthPage && !isAdminPage
 
@@ -108,6 +110,7 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/adminstart" element={<AdminStart />} />
+          <Route path="/clear-storage" element={<ClearStorage />} />
           
           {/* 2FA routes */}
           <Route path="/biometric-verify" element={<BiometricVerification />} />
