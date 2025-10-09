@@ -21,9 +21,9 @@ function League({ teamId, selectedChatter, refreshKey }) {
       try {
         setLoading(true)
         setError(null)
-        console.log('Loading league data for teamId:', teamId, 'selectedChatter:', selectedChatter, 'refreshKey:', refreshKey)
-        const userId = selectedChatter === 'all' ? null : selectedChatter
-        const data = await getLeagueData(teamId, userId)
+        console.log('Loading league data for teamId:', teamId, 'refreshKey:', refreshKey)
+        // League always shows all users (it's a ranking/league)
+        const data = await getLeagueData(teamId, null)
         if (!mounted) return
         console.log('League data loaded:', data)
         setLeagueData(data)
@@ -38,7 +38,7 @@ function League({ teamId, selectedChatter, refreshKey }) {
     }
     loadLeagueData()
     return () => { mounted = false }
-  }, [teamId, selectedChatter, refreshKey])
+  }, [teamId, refreshKey])
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('cs-CZ', {

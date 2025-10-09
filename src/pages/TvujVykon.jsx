@@ -10,7 +10,7 @@ import { TEAM_ID, USER_ID } from '../api/config'
 function TvujVykon() {
   const { t } = useTranslation()
   const [teamUsers, setTeamUsers] = useState([])
-  const [selectedChatter, setSelectedChatter] = useState('all')
+  const [selectedChatter, setSelectedChatter] = useState(USER_ID || 'all') // Default to logged-in user
   const [stats, setStats] = useState({ dailyVolume: 0, newClients: 0, lastHour: 0, totalClients: 0, totalEarned: 0, avgClient: 0 })
   const [timelineData, setTimelineData] = useState([])
   const [refreshKey, setRefreshKey] = useState(0) // Force refresh when day changes
