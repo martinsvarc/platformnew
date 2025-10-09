@@ -53,6 +53,18 @@ export default async function handler(req, res) {
     const statusEmoji = clientStatus?.toLowerCase() === 'new' ? '🆕' : '🔄'
     const statusText = clientStatus?.toLowerCase() === 'new' ? 'NEW CLIENT' : 'RETURNING CLIENT'
 
+    // Load Inter font from CDN
+    let fontData
+    try {
+      const fontResponse = await fetch(
+        'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff'
+      )
+      fontData = await fontResponse.arrayBuffer()
+    } catch (fontError) {
+      console.error('Failed to load font, using default:', fontError)
+      // Continue without custom font
+    }
+
     // Create SVG using Satori
     const svg = await satori(
       {
@@ -406,7 +418,14 @@ export default async function handler(req, res) {
       {
         width: 1200,
         height: 1400,
-        fonts: [],
+        fonts: fontData ? [
+          {
+            name: 'Inter',
+            data: fontData,
+            weight: 400,
+            style: 'normal',
+          },
+        ] : [],
       }
     )
 
