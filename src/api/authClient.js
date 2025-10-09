@@ -12,12 +12,23 @@ async function callAuthAPI(action, params = {}) {
     body: JSON.stringify({ action, ...params }),
   })
 
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Request failed')
+  // Get the response text first
+  const text = await response.text()
+  
+  // Try to parse as JSON
+  let data
+  try {
+    data = text ? JSON.parse(text) : {}
+  } catch (e) {
+    console.error('Failed to parse response:', text)
+    throw new Error('Invalid response from server')
   }
 
-  return response.json()
+  if (!response.ok) {
+    throw new Error(data.error || 'Request failed')
+  }
+
+  return data
 }
 
 export async function login({ username, password }) {

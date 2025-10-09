@@ -27,8 +27,17 @@ export async function generatePaymentImage(paymentData) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to generate payment image');
+      // Try to get error message from response
+      const text = await response.text();
+      let errorMessage = 'Failed to generate payment image';
+      try {
+        const error = text ? JSON.parse(text) : {};
+        errorMessage = error.error || errorMessage;
+      } catch (e) {
+        // Response wasn't JSON, use text or default message
+        errorMessage = text || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     // Get the image blob

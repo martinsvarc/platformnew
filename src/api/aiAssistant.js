@@ -22,15 +22,28 @@ export async function askAI(teamId, question) {
         throw new Error('AI_NOT_CONFIGURED')
       }
       
+      const text = await response.text()
       try {
-        const error = await response.json()
+        const error = text ? JSON.parse(text) : {}
         throw new Error(error.error || 'AI request failed')
-      } catch {
+      } catch (e) {
+        if (e.message === 'AI request failed' || e.message.startsWith('AI_')) {
+          throw e
+        }
         throw new Error('AI_NOT_CONFIGURED')
       }
     }
 
-    const data = await response.json()
+    // Parse successful response
+    const text = await response.text()
+    let data
+    try {
+      data = text ? JSON.parse(text) : {}
+    } catch (e) {
+      console.error('Failed to parse AI response:', text)
+      throw new Error('Invalid response from AI service')
+    }
+
     return {
       answer: data.answer,
       context: data.context,

@@ -75,7 +75,15 @@ function BackgroundUploadWidget() {
         }
       )
 
-      const data = await response.json()
+      // Parse response safely
+      const text = await response.text()
+      let data
+      try {
+        data = text ? JSON.parse(text) : {}
+      } catch (e) {
+        console.error('Failed to parse Cloudinary response:', text)
+        throw new Error('Invalid response from image upload service')
+      }
 
       if (!response.ok) {
         // If upload preset doesn't work, fall back to data URL (base64)

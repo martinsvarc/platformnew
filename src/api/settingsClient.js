@@ -4,32 +4,38 @@
 const API_BASE = '/.netlify/functions'
 
 async function callSettingsAPI(action, params = {}, method = 'POST') {
+  let response
+  
   if (method === 'GET') {
     const queryParams = new URLSearchParams({ action, ...params })
-    const response = await fetch(`${API_BASE}/settings?${queryParams}`)
-    
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Request failed')
-    }
-    
-    return response.json()
+    response = await fetch(`${API_BASE}/settings?${queryParams}`)
   } else {
-    const response = await fetch(`${API_BASE}/settings`, {
+    response = await fetch(`${API_BASE}/settings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ action, ...params }),
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Request failed')
-    }
-
-    return response.json()
   }
+
+  // Get the response text first
+  const text = await response.text()
+  
+  // Try to parse as JSON
+  let data
+  try {
+    data = text ? JSON.parse(text) : {}
+  } catch (e) {
+    console.error('Failed to parse response:', text)
+    throw new Error('Invalid response from server')
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Request failed')
+  }
+
+  return data
 }
 
 export async function getSetting(teamId, settingKey) {
