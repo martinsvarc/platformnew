@@ -45,11 +45,20 @@ function PINVerification() {
   }, [])
 
   useEffect(() => {
+    // Check if PIN is set up on mount, redirect to login if not
+    const storedPINData = getStoredPINData()
+    if (!storedPINData || !storedPINData.pinHash) {
+      console.log('PIN not set up on mount, redirecting to login')
+      localStorage.clear()
+      navigate('/login', { replace: true })
+      return
+    }
+    
     // Focus first input on mount
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus()
     }
-  }, [])
+  }, [navigate])
 
   const handlePinChange = (index, value) => {
     if (!/^\d*$/.test(value)) return // Only allow digits
@@ -60,9 +69,11 @@ function PINVerification() {
       newPin[index] = value
       setPin(newPin)
 
-      // Auto-focus next input
+      // Auto-focus next input with setTimeout for better reliability
       if (value && index < 5) {
-        inputRefs.current[index + 1]?.focus()
+        setTimeout(() => {
+          inputRefs.current[index + 1]?.focus()
+        }, 0)
       }
 
       // Auto-submit when all 6 digits are entered
@@ -126,7 +137,11 @@ function PINVerification() {
       const storedPINData = getStoredPINData()
       
       if (!storedPINData || !storedPINData.pinHash) {
-        throw new Error('PIN not set up. Please contact support.')
+        // PIN not set up - clear stale session and redirect to login
+        console.log('PIN not set up, clearing session and redirecting to login')
+        localStorage.clear()
+        navigate('/login', { replace: true })
+        return
       }
 
       // Verify PIN locally first
