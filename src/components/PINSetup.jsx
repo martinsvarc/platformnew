@@ -27,20 +27,29 @@ function PINSetup({ onComplete }) {
   }, [step])
 
   const handlePinChange = (index, value, isConfirm = false) => {
-    if (!/^\d*$/.test(value)) return // Only allow digits
+    // Only allow digits
+    if (!/^\d*$/.test(value)) return
 
     const refs = isConfirm ? confirmInputRefs : inputRefs
     const currentPin = isConfirm ? [...confirmPin] : [...pin]
     const setCurrentPin = isConfirm ? setConfirmPin : setPin
 
-    if (value.length <= 1) {
+    // Handle single character input
+    if (value.length === 1) {
       currentPin[index] = value
       setCurrentPin(currentPin)
 
-      // Auto-focus next input
-      if (value && index < 5) {
-        refs.current[index + 1]?.focus()
+      // Auto-focus next input immediately
+      if (index < 5) {
+        // Use setTimeout to ensure focus happens after state update
+        setTimeout(() => {
+          refs.current[index + 1]?.focus()
+        }, 0)
       }
+    } else if (value.length === 0) {
+      // Handle deletion
+      currentPin[index] = ''
+      setCurrentPin(currentPin)
     }
   }
 
@@ -49,11 +58,25 @@ function PINSetup({ onComplete }) {
     const currentPin = isConfirm ? [...confirmPin] : [...pin]
     const setCurrentPin = isConfirm ? setConfirmPin : setPin
 
-    if (e.key === 'Backspace' && !currentPin[index] && index > 0) {
-      refs.current[index - 1]?.focus()
+    if (e.key === 'Backspace') {
+      if (!currentPin[index] && index > 0) {
+        // If current is empty, go back and clear previous
+        e.preventDefault()
+        const newPin = [...currentPin]
+        newPin[index - 1] = ''
+        setCurrentPin(newPin)
+        refs.current[index - 1]?.focus()
+      } else if (currentPin[index]) {
+        // Clear current field
+        const newPin = [...currentPin]
+        newPin[index] = ''
+        setCurrentPin(newPin)
+      }
     } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault()
       refs.current[index - 1]?.focus()
     } else if (e.key === 'ArrowRight' && index < 5) {
+      e.preventDefault()
       refs.current[index + 1]?.focus()
     }
   }
@@ -155,21 +178,28 @@ function PINSetup({ onComplete }) {
   const PinInput = ({ value, onChange, onKeyDown, onPaste, inputRef, index, autoFocus }) => (
     <input
       ref={inputRef}
-      type="password"
+      type="text"
       inputMode="numeric"
+      pattern="[0-9]*"
       maxLength={1}
       value={value}
-      onChange={(e) => onChange(index, e.target.value)}
+      onChange={(e) => {
+        const newValue = e.target.value.replace(/[^0-9]/g, '') // Only allow digits
+        onChange(index, newValue)
+      }}
       onKeyDown={(e) => onKeyDown(index, e)}
       onPaste={onPaste}
+      onFocus={(e) => e.target.select()} // Select content on focus for easy replacement
       autoFocus={autoFocus}
+      autoComplete="off"
       className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 text-center text-2xl sm:text-3xl md:text-4xl font-bold 
                  bg-obsidian border-2 border-velvet-gray rounded-xl
                  focus:border-neon-orchid focus:shadow-glow-purple outline-none
                  transition-all duration-200
                  text-pearl"
       style={{
-        WebkitTextSecurity: value ? 'disc' : 'none'
+        WebkitTextSecurity: value ? 'disc' : 'none',
+        textSecurity: value ? 'disc' : 'none'
       }}
     />
   )
