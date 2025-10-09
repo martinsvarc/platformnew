@@ -7,6 +7,7 @@ import BackgroundUploadWidget from '../components/BackgroundUploadWidget'
 import TeamMembersWidget from '../components/TeamMembersWidget'
 import BulkPaymentImport from '../components/BulkPaymentImport'
 import PaymentManagement from '../components/PaymentManagement'
+import BiometricDiagnostic from '../components/BiometricDiagnostic'
 import { getBankAccountStats } from '../api/banks'
 import { TEAM_ID } from '../api/config'
 import { formatCurrency } from '../utils/currency'
@@ -131,6 +132,11 @@ function Admin() {
         {/* Payment Management */}
         <div className="mt-6">
           <PaymentManagement teamId={TEAM_ID} />
+        </div>
+
+        {/* Biometric Diagnostic Tool */}
+        <div className="mt-6">
+          <BiometricDiagnostic />
         </div>
       </div>
     </div>

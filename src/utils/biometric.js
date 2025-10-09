@@ -4,6 +4,12 @@ import CryptoJS from 'crypto-js'
  * Check if the browser supports biometric authentication
  */
 export function isBiometricSupported() {
+  // Web Authentication API requires a secure context (HTTPS or localhost)
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    console.warn('Web Authentication API requires HTTPS (secure context)')
+    return false
+  }
+  
   return window.PublicKeyCredential !== undefined &&
          navigator.credentials !== undefined &&
          typeof navigator.credentials.create === 'function'
@@ -31,8 +37,13 @@ export async function isBiometricAvailable() {
  * Register biometric credentials for a user
  */
 export async function registerBiometric(userId, username) {
+  // Check secure context first
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    throw new Error('Biometric authentication requires HTTPS. Please ensure your site is deployed with SSL/TLS.')
+  }
+  
   if (!await isBiometricAvailable()) {
-    throw new Error('Biometric authentication is not available on this device')
+    throw new Error('Biometric authentication is not available on this device. Please ensure you have Touch ID or Face ID enabled.')
   }
 
   try {
@@ -97,8 +108,13 @@ export async function registerBiometric(userId, username) {
  * Authenticate using biometric credentials
  */
 export async function authenticateWithBiometric() {
+  // Check secure context first
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    throw new Error('Biometric authentication requires HTTPS. Please access the site using https://')
+  }
+  
   if (!await isBiometricAvailable()) {
-    throw new Error('Biometric authentication is not available')
+    throw new Error('Biometric authentication is not available on this device')
   }
 
   try {
