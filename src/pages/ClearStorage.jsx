@@ -1,14 +1,24 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 /**
  * Emergency page to clear all localStorage
  * Access via /clear-storage
  * Useful when stuck due to domain mismatch or 2FA issues
+ * SECURITY: Only accessible when NOT logged in to prevent hijacking
  */
 function ClearStorage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [cleared, setCleared] = useState(false)
+  
+  // SECURITY: Redirect if user is already logged in
+  // This prevents someone with physical access from hijacking an active session
+  if (user) {
+    navigate('/starteam')
+    return null
+  }
 
   const handleClearAll = () => {
     // Clear all localStorage
@@ -104,6 +114,16 @@ function ClearStorage() {
             <li>Can't login after resetting 2FA</li>
             <li>Getting "2FA not defined" errors</li>
             <li>Need to start fresh with authentication</li>
+          </ul>
+        </div>
+
+        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-xs space-y-2">
+          <p className="font-semibold">🔒 Security Note:</p>
+          <ul className="list-disc list-inside space-y-1 text-red-300/80">
+            <li>This page only works when you're NOT logged in</li>
+            <li>You'll still need your password to login after clearing</li>
+            <li>This prevents unauthorized 2FA hijacking</li>
+            <li>Contact admin if you've forgotten your password</li>
           </ul>
         </div>
 
