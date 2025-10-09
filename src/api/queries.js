@@ -1,6 +1,6 @@
 import { sql } from './db'
 
-export async function getTeamTotals(teamId) {
+export async function getTeamTotals(teamId, userId = null) {
   const rows = await sql`
     select
       coalesce(sum(case when ((paid_at AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date = ((now() AT TIME ZONE 'Europe/Prague') - interval '2 hours')::date then (amount - COALESCE(fee_amount, 0)) else 0 end), 0)::float as daily,
@@ -12,6 +12,7 @@ export async function getTeamTotals(teamId) {
                         then (amount - COALESCE(fee_amount, 0)) else 0 end), 0)::float as monthly
     from payments
     where team_id = ${teamId}
+      ${userId ? sql`and user_id = ${userId}` : sql``}
   `
   return rows[0] || { daily: 0, weekly: 0, monthly: 0 }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../contexts/AuthContext'
 import { getTeamTotals, getActiveGoals, getBestChatterChallenge, getTopChatters } from '../api/queries'
 import { TEAM_ID } from '../api/config'
 import { formatCurrency, formatNumber } from '../utils/currency'
@@ -8,6 +9,7 @@ import { formatCurrency, formatNumber } from '../utils/currency'
 function Skore() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
+  const { user } = useAuth()
   const [view, setView] = useState('daily') // 'daily' | 'weekly' | 'monthly' | 'bestChatter'
   const [revenue, setRevenue] = useState(0)
   const [totals, setTotals] = useState({ daily: 0, weekly: 0, monthly: 0 })
@@ -64,10 +66,13 @@ function Skore() {
   useEffect(() => {
     let mounted = true
     const load = async () => {
-      if (!TEAM_ID) return
+      if (!TEAM_ID || !user) return
       try {
+        // Admins see all payments, chatters see only their own
+        const userIdFilter = user.role === 'admin' ? null : user.id
+        
         const [t, g, challenge] = await Promise.all([
-          getTeamTotals(TEAM_ID),
+          getTeamTotals(TEAM_ID, userIdFilter),
           getActiveGoals(TEAM_ID),
           getBestChatterChallenge(TEAM_ID)
         ])
@@ -94,7 +99,7 @@ function Skore() {
     load()
     const id = setInterval(load, 15000)
     return () => { mounted = false; clearInterval(id) }
-  }, [])
+  }, [user])
 
   // Change displayed amount when switching view (mock different totals per view)
   useEffect(() => {
