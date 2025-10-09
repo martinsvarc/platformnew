@@ -50,6 +50,37 @@ async function getBusinessContext(teamId) {
       LIMIT 5
     `
 
+    // Get detailed payment sequence retention (ALL payment numbers)
+    const paymentSequence = await sql`
+      WITH client_payment_counts AS (
+        SELECT 
+          client_id,
+          COUNT(*) as total_payments
+        FROM payments
+        WHERE team_id = ${teamId} AND client_id IS NOT NULL
+        GROUP BY client_id
+      ),
+      max_sequence AS (
+        SELECT COALESCE(MAX(total_payments), 0) as max_val FROM client_payment_counts
+      ),
+      sequences AS (
+        SELECT generate_series(1, LEAST((SELECT max_val FROM max_sequence), 20)) as sequence
+      ),
+      total_clients AS (
+        SELECT COUNT(*) as total FROM client_payment_counts
+      )
+      SELECT 
+        s.sequence,
+        COUNT(cpc.client_id) as clients_reached,
+        tc.total as total_clients,
+        (COUNT(cpc.client_id)::float / NULLIF(tc.total, 0) * 100)::float as percentage
+      FROM sequences s
+      CROSS JOIN total_clients tc
+      LEFT JOIN client_payment_counts cpc ON cpc.total_payments >= s.sequence
+      GROUP BY s.sequence, tc.total
+      ORDER BY s.sequence ASC
+    `
+
     const growthData = await sql`
       WITH date_ranges AS (
         SELECT 
@@ -71,7 +102,8 @@ async function getBusinessContext(teamId) {
       overall: overallMetrics,
       retention: retentionData[0] || {},
       topPerformers,
-      growth: growthData
+      growth: growthData,
+      paymentSequence: paymentSequence
     }
   } catch (error) {
     console.error('Error getting business context:', error)
@@ -127,6 +159,13 @@ ${context.topPerformers.map((c) => `Performer #${c.rank}: ${Number(c.total_reven
 
 Recent Growth (Last 30 days vs Previous 30 days):
 ${context.growth.map(g => `${g.period}: ${g.payment_count} payments, ${Number(g.revenue).toFixed(0)} CZK`).join('\n')}
+
+Payment Sequence Retention (Detailed):
+${context.paymentSequence.map((seq, index) => {
+  const prevSeq = index > 0 ? context.paymentSequence[index - 1] : null
+  const stepRetention = prevSeq ? ((seq.clients_reached / prevSeq.clients_reached) * 100).toFixed(1) : 100
+  return `${seq.sequence}. payment: ${seq.clients_reached} clients (${Number(seq.percentage).toFixed(1)}% of total)${index > 0 ? ` [${stepRetention}% from previous]` : ''}`
+}).join('\n')}
 
 User's Question: ${question}
 
