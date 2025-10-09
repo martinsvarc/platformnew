@@ -507,33 +507,48 @@ function Analytics() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {paymentSequenceRetention.map((item) => (
-                    <div key={item.sequence} className="flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-pearl">
-                            {item.sequence}. platba
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm text-pearl/70">
-                              {item.clientsReached} klientů
+                  {paymentSequenceRetention.map((item, index) => {
+                    // Calculate retention from previous payment
+                    const previousItem = index > 0 ? paymentSequenceRetention[index - 1] : null
+                    const stepRetention = previousItem 
+                      ? (item.clientsReached / previousItem.clientsReached) * 100 
+                      : 100
+                    
+                    return (
+                      <div key={item.sequence} className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm text-pearl">
+                              {item.sequence}. platba
                             </span>
-                            <span className="text-sm font-bold text-gradient-primary ml-2 whitespace-nowrap">
-                              ({formatNumber(item.percentage, 1)}%)
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-pearl/70">
+                                {item.clientsReached} klientů
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-gradient-primary whitespace-nowrap">
+                                  ({formatNumber(item.percentage, 1)}%)
+                                </span>
+                                {index > 0 && (
+                                  <span className="text-xs font-semibold text-gradient-gold whitespace-nowrap">
+                                    [{formatNumber(stepRetention, 1)}% z předchozí]
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-full bg-velvet-gray/40 rounded-full h-2 relative">
+                            <div
+                              className="bg-gradient-to-r from-violet-500 to-purple-500 h-2 rounded-full transition-all"
+                              style={{
+                                width: `${item.percentage}%`
+                              }}
+                            />
                           </div>
                         </div>
-                        <div className="w-full bg-velvet-gray/40 rounded-full h-2 relative">
-                          <div
-                            className="bg-gradient-to-r from-violet-500 to-purple-500 h-2 rounded-full transition-all"
-                            style={{
-                              width: `${item.percentage}%`
-                            }}
-                          />
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   {paymentSequenceRetention.length === 0 && (
                     <p className="text-center text-pearl/50 py-8">
                       Žádná data k zobrazení
