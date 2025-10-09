@@ -1,21 +1,179 @@
 import { sql } from './db'
 
-// Webhook URL for n8n automation
+// Webhook URLs for n8n automation
 const WEBHOOK_URL = 'https://n8n.automatedsolarbiz.com/webhook/d804aab4-f396-4abb-86b1-3b0945448f6c'
+const IMAGE_WEBHOOK_URL = 'https://n8n.automatedsolarbiz.com/webhook/ef05d1f1-3fe3-4828-aacd-5cebaf54827c'
 
 /**
- * Send payment data to webhook
+ * Send payment data to webhook with auto-generated image
  */
 async function sendPaymentWebhook(paymentData) {
   try {
     console.log('Sending payment webhook notification...', paymentData)
     
+    // Calculate today's totals
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    
+    // Get chatter's today amount
+    let chatterTodayAmount = 0
+    if (paymentData.user_id) {
+      try {
+        const chatterToday = await sql`
+          select coalesce(sum(amount - coalesce(fee_amount, 0)), 0) as total
+          from payments
+          where user_id = ${paymentData.user_id}
+            and date(paid_at) = ${today}::date
+        `
+        chatterTodayAmount = Number(chatterToday[0]?.total || 0)
+      } catch (err) {
+        console.error('Error calculating chatter today amount:', err)
+      }
+    }
+    
+    // Get team's today amount
+    let teamTodayAmount = 0
+    if (paymentData.team_id) {
+      try {
+        const teamToday = await sql`
+          select coalesce(sum(amount - coalesce(fee_amount, 0)), 0) as total
+          from payments
+          where team_id = ${paymentData.team_id}
+            and date(paid_at) = ${today}::date
+        `
+        teamTodayAmount = Number(teamToday[0]?.total || 0)
+      } catch (err) {
+        console.error('Error calculating team today amount:', err)
+      }
+    }
+    
+    // Get chatter's total made
+    let chatterMadeTotal = 0
+    if (paymentData.user_id) {
+      try {
+        const chatterTotal = await sql`
+          select coalesce(sum(amount - coalesce(fee_amount, 0)), 0) as total
+          from payments
+          where user_id = ${paymentData.user_id}
+        `
+        chatterMadeTotal = Number(chatterTotal[0]?.total || 0)
+      } catch (err) {
+        console.error('Error calculating chatter total:', err)
+      }
+    }
+    
+    // Get client's total sent
+    let clientSentTotal = 0
+    let clientDay = null
+    if (paymentData.client_id) {
+      try {
+        const clientStats = await sql`
+          select 
+            coalesce(sum(amount), 0) as total,
+            count(*) as payment_count
+          from payments
+          where client_id = ${paymentData.client_id}
+        `
+        clientSentTotal = Number(clientStats[0]?.total || 0)
+        const paymentCount = Number(clientStats[0]?.payment_count || 0)
+        
+        if (paymentCount === 1) {
+          clientDay = '1st day'
+        } else if (paymentCount > 1) {
+          clientDay = `${paymentCount}${getOrdinalSuffix(paymentCount)} session`
+        }
+      } catch (err) {
+        console.error('Error calculating client stats:', err)
+      }
+    }
+    
+    // Check if client is new (first payment)
+    let isNewClient = false
+    if (paymentData.client_id) {
+      try {
+        const clientPaymentCount = await sql`
+          select count(*) as count
+          from payments
+          where client_id = ${paymentData.client_id}
+        `
+        isNewClient = Number(clientPaymentCount[0]?.count || 0) === 1
+      } catch (err) {
+        console.error('Error checking if client is new:', err)
+      }
+    }
+    
+    // Generate payment image
+    const imageData = {
+      chatterName: paymentData.user_display_name || paymentData.user_username || 'Unknown',
+      chatterProfilePicture: paymentData.user_avatar_url || null,
+      chatterMadeTotal: chatterMadeTotal,
+      chatterTodayAmount: chatterTodayAmount,
+      teamTodayAmount: teamTodayAmount,
+      paymentAmount: paymentData.amount,
+      currency: paymentData.currency || 'CZK',
+      clientName: paymentData.client_name || 'Unknown Client',
+      clientStatus: isNewClient ? 'new' : 'old',
+      productDescription: paymentData.prodano || null,
+      clientSentTotal: clientSentTotal,
+      clientDay: clientDay,
+      customMessage: paymentData.message || null,
+    }
+    
+    console.log('Generating payment image with data:', imageData)
+    
+    // Call image generation API (use absolute URL for production)
+    const apiUrl = window.location.origin + '/api/generate-payment-image'
+    
+    try {
+      const imageResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(imageData),
+      })
+      
+      if (imageResponse.ok) {
+        // Get image as blob and convert to base64
+        const imageBlob = await imageResponse.blob()
+        const imageBase64 = await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result.split(',')[1])
+          reader.readAsDataURL(imageBlob)
+        })
+        
+        // Send to image webhook with all data + image
+        await fetch(IMAGE_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...paymentData,
+            ...imageData,
+            imageBase64: imageBase64,
+            timestamp: new Date().toISOString(),
+          }),
+        })
+        
+        console.log('Payment image sent to webhook successfully')
+      } else {
+        console.error('Image generation failed:', imageResponse.status)
+      }
+    } catch (imageError) {
+      console.error('Error generating/sending image:', imageError)
+    }
+    
+    // Also send to original webhook
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(paymentData)
+      body: JSON.stringify({
+        ...paymentData,
+        chatterTodayAmount,
+        teamTodayAmount,
+      })
     })
     
     if (!response.ok) {
@@ -27,6 +185,16 @@ async function sendPaymentWebhook(paymentData) {
     // Don't throw error - webhook failure shouldn't break payment creation
     console.error('Error sending webhook notification:', error)
   }
+}
+
+// Helper function for ordinal suffixes
+function getOrdinalSuffix(num) {
+  const j = num % 10
+  const k = num % 100
+  if (j === 1 && k !== 11) return 'st'
+  if (j === 2 && k !== 12) return 'nd'
+  if (j === 3 && k !== 13) return 'rd'
+  return 'th'
 }
 
 async function resolveOrCreateClient(sql, teamId, client) {

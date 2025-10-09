@@ -1,9 +1,41 @@
 # n8n Payment Image Generator Guide
 
 ## Overview
-Your payment image API endpoint returns beautiful HTML that n8n can screenshot and share.
+Payment images are **automatically generated and sent** to your n8n webhook when a payment is created!
 
-## API Endpoint
+## Automatic Generation ✨
+
+When a payment is created in the app, the system automatically:
+1. ✅ Calculates **Chatter Today Amount** and **Team Today Amount**
+2. ✅ Generates epic PNG payment image with satori + resvg
+3. ✅ Sends image as base64 to your webhook
+
+**Webhook URL:** `https://n8n.automatedsolarbiz.com/webhook/ef05d1f1-3fe3-4828-aacd-5cebaf54827c`
+
+## What You Receive
+
+Your n8n webhook receives:
+```json
+{
+  "imageBase64": "iVBORw0KG...",  // PNG image as base64
+  "chatterName": "Anna K.",
+  "chatterTodayAmount": 15000,    // NEW: Today's total for this chatter
+  "teamTodayAmount": 45000,       // NEW: Today's total for entire team
+  "chatterMadeTotal": 125000,
+  "paymentAmount": 5000,
+  "currency": "CZK",
+  "clientName": "Client#123",
+  "clientStatus": "new",
+  "clientSentTotal": 5000,
+  "clientDay": "1st day",
+  "productDescription": "Premium content",
+  "customMessage": "Great session!",
+  "timestamp": "2025-01-10T15:30:00.000Z",
+  // ... plus all payment data
+}
+```
+
+## Manual API Endpoint (Optional)
 ```
 POST https://www.cink.club/api/generate-payment-image
 ```
