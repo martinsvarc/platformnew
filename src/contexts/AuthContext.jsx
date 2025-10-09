@@ -191,8 +191,20 @@ export function AuthProvider({ children }) {
       
       setUser(userData)
 
-      // Check if user needs to set up 2FA (first time setup)
+      // Check if user needs to set up 2FA (first time setup or after reset)
       if (userData.two_fa_setup_required) {
+        // Clear any old 2FA credentials from previous setup
+        localStorage.removeItem('biometric_credential')
+        localStorage.removeItem('biometric_enabled')
+        localStorage.removeItem('biometric_domain')
+        localStorage.removeItem('biometric_verified')
+        localStorage.removeItem('pin_credential')
+        localStorage.removeItem('pin_enabled')
+        localStorage.removeItem('pin_verified')
+        localStorage.removeItem('two_fa_method')
+        localStorage.removeItem('pendingBiometricVerification')
+        localStorage.removeItem('pendingPINVerification')
+        
         // User needs to set up 2FA - they'll see the setup prompt
         localStorage.setItem('pending2FASetup', 'true')
         return { success: true, user: userData, requireBiometric: false, require2FASetup: true }
