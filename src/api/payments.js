@@ -102,6 +102,8 @@ async function sendPaymentWebhook(paymentData) {
     }
     
     // Generate payment image
+    // IMAGE GENERATION DISABLED
+    /*
     const imageData = {
       chatterName: paymentData.user_display_name || paymentData.user_username || 'Unknown',
       chatterProfilePicture: paymentData.user_avatar_url || null,
@@ -191,6 +193,7 @@ async function sendPaymentWebhook(paymentData) {
     } catch (imageError) {
       console.error('Error generating/sending image:', imageError)
     }
+    */
     
     // Also send to original webhook
     const response = await fetch(WEBHOOK_URL, {
