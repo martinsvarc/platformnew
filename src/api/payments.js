@@ -133,13 +133,42 @@ async function sendPaymentWebhook(paymentData) {
       })
       
       if (imageResponse.ok) {
-        // Get image as blob and convert to base64
-        const imageBlob = await imageResponse.blob()
-        const imageBase64 = await new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result.split(',')[1])
-          reader.readAsDataURL(imageBlob)
+        // Get HTML and convert to image using html2canvas
+        const html = await imageResponse.text()
+        
+        // Create temporary iframe to render HTML
+        const iframe = document.createElement('iframe')
+        iframe.style.position = 'absolute'
+        iframe.style.left = '-9999px'
+        iframe.style.width = '1200px'
+        iframe.style.height = '1400px'
+        document.body.appendChild(iframe)
+        
+        // Write HTML to iframe
+        iframe.contentDocument.open()
+        iframe.contentDocument.write(html)
+        iframe.contentDocument.close()
+        
+        // Wait for iframe to load
+        await new Promise(resolve => {
+          iframe.onload = resolve
+          setTimeout(resolve, 100) // Fallback
         })
+        
+        // Convert to canvas using html2canvas
+        const html2canvas = (await import('html2canvas')).default
+        const canvas = await html2canvas(iframe.contentDocument.body, {
+          width: 1200,
+          height: 1400,
+          scale: 1,
+          logging: false,
+        })
+        
+        // Convert canvas to base64
+        const imageBase64 = canvas.toDataURL('image/png').split(',')[1]
+        
+        // Clean up
+        document.body.removeChild(iframe)
         
         // Send to image webhook with all data + image
         await fetch(IMAGE_WEBHOOK_URL, {
