@@ -39,12 +39,16 @@ function PINSetup({ onComplete }) {
       currentPin[index] = value
       setCurrentPin(currentPin)
 
-      // Auto-focus next input immediately
+      // Auto-focus next input and select content
       if (index < 5) {
         // Use setTimeout to ensure focus happens after state update
         setTimeout(() => {
-          refs.current[index + 1]?.focus()
-        }, 0)
+          const nextInput = refs.current[index + 1]
+          if (nextInput) {
+            nextInput.focus()
+            nextInput.select()
+          }
+        }, 10)
       }
     } else if (value.length === 0) {
       // Handle deletion
@@ -192,8 +196,8 @@ function PINSetup({ onComplete }) {
       onFocus={(e) => e.target.select()} // Select content on focus for easy replacement
       autoFocus={autoFocus}
       autoComplete="off"
-      className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 
-                 text-center text-xl sm:text-2xl md:text-3xl font-bold 
+      className="w-14 h-14 sm:w-16 sm:h-16 
+                 text-center text-2xl sm:text-3xl font-bold 
                  bg-obsidian border-2 border-velvet-gray rounded-xl
                  focus:border-neon-orchid focus:shadow-glow-purple focus:scale-105 outline-none
                  transition-all duration-200
@@ -207,8 +211,8 @@ function PINSetup({ onComplete }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-obsidian via-charcoal to-obsidian flex items-center justify-center p-4">
-      <div className={`w-full max-w-md ${shake ? 'animate-shake' : ''}`}>
-        <div className="unified-glass p-6 sm:p-8 md:p-10 rounded-2xl overflow-visible">
+      <div className={`w-full max-w-lg ${shake ? 'animate-shake' : ''}`}>
+        <div className="unified-glass p-8 sm:p-10 md:p-12 rounded-2xl">
           {step === 'enter' && (
             <>
               <div className="text-center mb-8">
@@ -225,7 +229,7 @@ function PINSetup({ onComplete }) {
                 </p>
               </div>
 
-              <div className="flex justify-center items-center gap-2 sm:gap-3 mb-6 px-2 py-4 overflow-visible">
+              <div className="flex justify-center items-center gap-3 sm:gap-4 mb-8 py-2">
                 {pin.map((digit, index) => (
                   <PinInput
                     key={index}
@@ -285,7 +289,7 @@ function PINSetup({ onComplete }) {
                 </p>
               </div>
 
-              <div className="flex justify-center items-center gap-2 sm:gap-3 mb-6 px-2 py-4 overflow-visible">
+              <div className="flex justify-center items-center gap-3 sm:gap-4 mb-8 py-2">
                 {confirmPin.map((digit, index) => (
                   <PinInput
                     key={index}

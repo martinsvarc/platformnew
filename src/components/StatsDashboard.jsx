@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { StatsCardSkeleton } from './LoadingSkeleton'
 import { formatCurrency } from '../utils/currency'
 
-function StatsDashboard({ stats }) {
+function StatsDashboard({ stats, showBonusCard = true }) {
   const { t, i18n } = useTranslation()
   const [isLoading, setIsLoading] = useState(true)
   
@@ -113,7 +113,7 @@ function StatsDashboard({ stats }) {
       </div>
 
       {/* Row 2: Total Clients, Bonus Remaining, Average Client */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-1.5 flex-shrink-0">
+      <div className={`grid grid-cols-1 xs:grid-cols-2 ${showBonusCard ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-1 sm:gap-1.5 flex-shrink-0`}>
         {/* Total Clients Card */}
         <StatCard className="frosted-stats-primary" delay={0.2}>
           <div>
@@ -130,36 +130,38 @@ function StatsDashboard({ stats }) {
           <p className="text-xs font-medium text-pearl/60">{t('common.all') === 'All' ? 'Clients' : 'Klienti'}</p>
         </StatCard>
 
-        {/* Bonus Remaining Card */}
-        <StatCard className="frosted-stats-crimson" delay={0.25}>
-          <div>
-            <div className="mb-2">
-              <svg className="w-5 h-5 mx-auto text-crimson" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        {/* Bonus Remaining Card - Only show for specific chatter */}
+        {showBonusCard && (
+          <StatCard className="frosted-stats-crimson" delay={0.25}>
+            <div>
+              <div className="mb-2">
+                <svg className="w-5 h-5 mx-auto text-crimson" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              {(() => {
+                const amount = statsData.dailyVolume
+                const target = amount < 5000 ? 5000 : amount < 10000 ? 10000 : null
+                const remaining = target ? target - amount : 0
+                return (
+                  <>
+                    <h3 className="text-xs font-medium text-pearl/80 mb-2 uppercase tracking-wide">{t('common.all') === 'All' ? 'To Bonus' : 'Do bonusu'}</h3>
+                    <p className={`text-3xl font-black ${target ? 'text-gradient-primary' : 'text-gradient-gold'} stat-glow leading-none text-center mb-2`}>
+                      {target ? (remaining > 1000 ? `${(remaining/1000).toFixed(1)}k` : remaining) : '0'}
+                    </p>
+                  </>
+                )
+              })()}
             </div>
             {(() => {
               const amount = statsData.dailyVolume
               const target = amount < 5000 ? 5000 : amount < 10000 ? 10000 : null
-              const remaining = target ? target - amount : 0
               return (
-                <>
-                  <h3 className="text-xs font-medium text-pearl/80 mb-2 uppercase tracking-wide">{t('common.all') === 'All' ? 'To Bonus' : 'Do bonusu'}</h3>
-                  <p className={`text-3xl font-black ${target ? 'text-gradient-primary' : 'text-gradient-gold'} stat-glow leading-none text-center mb-2`}>
-                    {target ? (remaining > 1000 ? `${(remaining/1000).toFixed(1)}k` : remaining) : '0'}
-                  </p>
-                </>
+                <p className="text-xs font-medium text-pearl/60">{target ? `${formatAmount(target)}` : (t('common.all') === 'All' ? 'Completed' : 'Splněn')}</p>
               )
             })()}
-          </div>
-          {(() => {
-            const amount = statsData.dailyVolume
-            const target = amount < 5000 ? 5000 : amount < 10000 ? 10000 : null
-            return (
-              <p className="text-xs font-medium text-pearl/60">{target ? `${formatAmount(target)}` : (t('common.all') === 'All' ? 'Completed' : 'Splněn')}</p>
-            )
-          })()}
-        </StatCard>
+          </StatCard>
+        )}
 
         {/* Average Client Card */}
         <StatCard className="frosted-stats-gold" delay={0.3}>

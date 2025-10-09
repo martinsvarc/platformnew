@@ -10,7 +10,9 @@ import { TEAM_ID, USER_ID } from '../api/config'
 function TvujVykon() {
   const { t } = useTranslation()
   const [teamUsers, setTeamUsers] = useState([])
-  const [selectedChatter, setSelectedChatter] = useState(USER_ID || 'all') // Default to logged-in user
+  // Get userId from localStorage directly to ensure it's fresh
+  const userId = typeof localStorage !== 'undefined' ? localStorage.getItem('userId') : null
+  const [selectedChatter, setSelectedChatter] = useState(userId || 'all') // Default to logged-in user
   const [stats, setStats] = useState({ dailyVolume: 0, newClients: 0, lastHour: 0, totalClients: 0, totalEarned: 0, avgClient: 0 })
   const [timelineData, setTimelineData] = useState([])
   const [refreshKey, setRefreshKey] = useState(0) // Force refresh when day changes
@@ -59,6 +61,18 @@ function TvujVykon() {
     const chattersOnly = teamUsers.filter(user => user.role !== 'admin')
     return [allOption, ...chattersOnly]
   }, [teamUsers, t])
+
+  // Ensure selectedChatter is valid - if user is admin or not in list, default to first chatter or 'all'
+  useEffect(() => {
+    if (teamUsers.length > 0) {
+      const validIds = chatters.map(c => c.id)
+      if (!validIds.includes(selectedChatter)) {
+        // If current selection is not valid (e.g., admin user), pick first chatter or 'all'
+        const firstChatter = chatters.find(c => c.id !== 'all')
+        setSelectedChatter(firstChatter ? firstChatter.id : 'all')
+      }
+    }
+  }, [teamUsers, chatters, selectedChatter])
 
   // Load team users and debug payments
   useEffect(() => {
@@ -128,13 +142,13 @@ function TvujVykon() {
         })
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error(t('performance.loadingFailed'), e)
+        console.error('Loading stats failed:', e)
       }
     }
     loadStats()
     const id = setInterval(loadStats, 15000)
     return () => { mounted = false; clearInterval(id) }
-  }, [selectedChatter, refreshKey, t])
+  }, [selectedChatter, refreshKey, TEAM_ID])
 
   // Load timeline data based on selected chatter and refresh key
   useEffect(() => {
@@ -154,7 +168,7 @@ function TvujVykon() {
     loadTimeline()
     const id = setInterval(loadTimeline, 15000)
     return () => { mounted = false; clearInterval(id) }
-  }, [selectedChatter, refreshKey])
+  }, [selectedChatter, refreshKey, TEAM_ID])
 
   return (
     <div className="min-h-screen overflow-y-auto p-3 sm:p-4 md:p-6 lg:ml-64">
@@ -198,7 +212,7 @@ function TvujVykon() {
           {/* Left column - Stats Dashboard */}
           <div className="unified-glass p-2 sm:p-3 md:p-4">
             <h2 className="text-base sm:text-lg font-bold text-gradient-primary mb-2 text-center">{t('performance.yourPerformance')}</h2>
-            <StatsDashboard stats={stats} />
+            <StatsDashboard stats={stats} showBonusCard={selectedChatter !== 'all'} />
           </div>
           
           {/* Right column - League */}
