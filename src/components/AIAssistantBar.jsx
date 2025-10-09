@@ -58,9 +58,9 @@ function AIAssistantBar() {
         {showResponse && (
           <div 
             ref={responseRef}
-            className="mb-3 unified-glass p-4 animate-slideUp"
+            className="mb-3 unified-glass p-4 animate-slideUp max-h-[60vh] flex flex-col"
           >
-            <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-start justify-between gap-3 mb-2 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🤖</span>
                 <h4 className="font-semibold text-gradient-primary">AI Analysis</h4>
@@ -74,7 +74,7 @@ function AIAssistantBar() {
                 </svg>
               </button>
             </div>
-            <div className="text-pearl text-sm whitespace-pre-wrap leading-relaxed">
+            <div className="text-pearl text-sm whitespace-pre-wrap leading-relaxed overflow-y-auto pr-2 custom-scrollbar">
               {response}
             </div>
           </div>
@@ -169,6 +169,20 @@ function AIAssistantBar() {
         }
         .animate-slideUp {
           animation: slideUp 0.3s ease-out;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(157, 0, 255, 0.1);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(157, 0, 255, 0.5);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(157, 0, 255, 0.7);
         }
       `}</style>
     </div>
