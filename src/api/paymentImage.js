@@ -1,5 +1,6 @@
 /**
  * Generate a beautiful payment image for Telegram sharing
+ * Returns HTML that can be rendered and screenshot
  * 
  * @param {Object} paymentData - Payment information
  * @param {string} paymentData.chatterName - Name of the chatter
@@ -14,7 +15,7 @@
  * @param {string} paymentData.clientDay - Client's session info (e.g., "1st day", "2nd session")
  * @param {string} [paymentData.customMessage] - Custom message from the chatter
  * 
- * @returns {Promise<Blob>} - Image blob that can be downloaded or sent to Telegram
+ * @returns {Promise<string>} - HTML string that can be rendered
  */
 export async function generatePaymentImage(paymentData) {
   try {
@@ -40,9 +41,9 @@ export async function generatePaymentImage(paymentData) {
       throw new Error(errorMessage);
     }
 
-    // Get the image blob
-    const blob = await response.blob();
-    return blob;
+    // Get the HTML
+    const html = await response.text();
+    return html;
   } catch (error) {
     console.error('Error generating payment image:', error);
     throw error;
@@ -50,24 +51,25 @@ export async function generatePaymentImage(paymentData) {
 }
 
 /**
- * Generate and download a payment image
+ * Open payment image in new window for screenshot
  * 
  * @param {Object} paymentData - Payment information (see generatePaymentImage for structure)
- * @param {string} [filename] - Optional custom filename
  */
 export async function downloadPaymentImage(paymentData, filename) {
   try {
-    const blob = await generatePaymentImage(paymentData);
+    const html = await generatePaymentImage(paymentData);
     
-    // Create download link
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || `payment-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    // Open in new window
+    const newWindow = window.open('', '_blank', 'width=1200,height=1400');
+    if (newWindow) {
+      newWindow.document.write(html);
+      newWindow.document.close();
+      
+      // Add instructions
+      setTimeout(() => {
+        alert('To save the payment image:\n\n1. Right-click on the image\n2. Select "Save as..." or take a screenshot\n3. Or use Cmd+Shift+4 (Mac) / Windows+Shift+S (Windows) to screenshot');
+      }, 500);
+    }
     
     return true;
   } catch (error) {
@@ -77,21 +79,16 @@ export async function downloadPaymentImage(paymentData, filename) {
 }
 
 /**
- * Generate payment image and get as data URL (for preview)
+ * Generate payment image HTML (for preview in iframe)
  * 
  * @param {Object} paymentData - Payment information (see generatePaymentImage for structure)
- * @returns {Promise<string>} - Data URL of the image
+ * @returns {Promise<string>} - HTML string
  */
 export async function getPaymentImageDataURL(paymentData) {
   try {
-    const blob = await generatePaymentImage(paymentData);
-    
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    const html = await generatePaymentImage(paymentData);
+    // Return as data URL for iframe src
+    return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
   } catch (error) {
     console.error('Error getting payment image data URL:', error);
     throw error;
