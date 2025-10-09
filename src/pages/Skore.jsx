@@ -20,6 +20,7 @@ function Skore() {
   const [isLoading, setIsLoading] = useState(true)
   const animTimeoutRef = useRef(null)
   const buttonRefs = useRef([])
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const goalByView = useMemo(() => {
     const findGoal = (period) => goals.find(g => g.period === period)
@@ -163,6 +164,32 @@ function Skore() {
     return formatNumber(amount, i18n.language)
   }
 
+  // Fullscreen toggle for AirPlay
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true)
+      }).catch(err => {
+        console.error('Error attempting to enable fullscreen:', err)
+      })
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => {
+          setIsFullscreen(false)
+        })
+      }
+    }
+  }
+
+  // Listen for fullscreen changes (user can exit with ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
   // Keyboard (TV remote) navigation for view buttons
   useEffect(() => {
     // Filter out inactive goals
@@ -240,6 +267,8 @@ function Skore() {
             loop 
             muted 
             playsInline
+            x-webkit-airplay="allow"
+            airplay="allow"
             className="absolute top-0 left-0 w-full h-full object-cover z-0 animate-fade-in"
           />
         ) : null
@@ -260,6 +289,8 @@ function Skore() {
             loop 
             muted 
             playsInline
+            x-webkit-airplay="allow"
+            airplay="allow"
             className="absolute top-0 left-0 w-full h-full object-cover z-0 animate-fade-in"
           />
         ) : null
@@ -270,6 +301,8 @@ function Skore() {
           autoPlay
           muted
           playsInline
+          x-webkit-airplay="allow"
+          airplay="allow"
           onEnded={() => setVideoIndex((prev) => (prev + 1) % videos.length)}
           className="absolute top-0 left-0 w-full h-full object-cover z-0"
         >
@@ -579,6 +612,27 @@ function Skore() {
         title={t('score.home')}
       >
         🏠 <span className="hidden sm:inline">{t('score.home')}</span>
+      </button>
+
+      {/* AirPlay button bottom-right */}
+      <button
+        type="button"
+        onClick={toggleFullscreen}
+        className="fixed bottom-2 sm:bottom-4 right-2 sm:right-4 z-10 px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-lg bg-velvet-gray/80 text-pearl border border-neon-orchid/30 hover:shadow-glow smooth-hover animate-slide-in-right text-xs sm:text-sm md:text-base group relative"
+        title={i18n.language === 'en' ? 'Fullscreen for AirPlay' : 'Celá obrazovka pro AirPlay'}
+      >
+        {isFullscreen ? '📺' : '📡'} <span className="hidden sm:inline">AirPlay</span>
+        {/* Tooltip for AirPlay instructions */}
+        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block w-64 p-3 bg-velvet-gray border border-neon-orchid/50 rounded-lg shadow-glow text-xs text-left pointer-events-none">
+          <p className="font-semibold text-neon-orchid mb-1">
+            {i18n.language === 'en' ? 'AirPlay Instructions:' : 'Návod AirPlay:'}
+          </p>
+          <ol className="list-decimal ml-4 space-y-1 text-pearl/90">
+            <li>{i18n.language === 'en' ? 'Click to enter fullscreen' : 'Klikněte pro celou obrazovku'}</li>
+            <li>{i18n.language === 'en' ? 'On Mac: Click AirPlay icon in menu bar' : 'Na Mac: Klikněte na ikonu AirPlay v menu'}</li>
+            <li>{i18n.language === 'en' ? 'On iPhone/iPad: Swipe down Control Center > Screen Mirroring' : 'Na iPhone/iPad: Potáhněte dolů Control Center > Zrcadlení obrazovky'}</li>
+          </ol>
+        </div>
       </button>
     </div>
   )
