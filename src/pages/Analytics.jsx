@@ -518,12 +518,12 @@ function Analytics() {
                             <span className="text-sm text-pearl/70">
                               {item.clientsReached} klientů
                             </span>
-                            <span className="text-sm font-semibold text-pearl ml-2 whitespace-nowrap">
-                              {formatNumber(item.percentage, 1)}%
+                            <span className="text-sm font-bold text-gradient-primary ml-2 whitespace-nowrap">
+                              ({formatNumber(item.percentage, 1)}%)
                             </span>
                           </div>
                         </div>
-                        <div className="w-full bg-velvet-gray/40 rounded-full h-2">
+                        <div className="w-full bg-velvet-gray/40 rounded-full h-2 relative">
                           <div
                             className="bg-gradient-to-r from-violet-500 to-purple-500 h-2 rounded-full transition-all"
                             style={{
