@@ -6,6 +6,7 @@ import { formatCurrency } from '../utils/currency'
 function StatsDashboard({ stats, showBonusCard = true }) {
   const { t, i18n } = useTranslation()
   const [isLoading, setIsLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
   
   // Mock data as specified
   const statsData = stats || {
@@ -17,14 +18,17 @@ function StatsDashboard({ stats, showBonusCard = true }) {
     avgClient: 500
   }
 
-  // Simulate loading state
+  // Only show loading skeleton on initial load, not on data refreshes
   useEffect(() => {
-    setIsLoading(true)
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 800)
-    return () => clearTimeout(timer)
-  }, [stats])
+    if (initialLoad) {
+      setIsLoading(true)
+      const timer = setTimeout(() => {
+        setIsLoading(false)
+        setInitialLoad(false)
+      }, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [initialLoad])
 
   const getDailyVolumeStyle = (amount) => {
     if (amount > 10000) {

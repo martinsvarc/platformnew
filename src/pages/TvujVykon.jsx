@@ -146,7 +146,7 @@ function TvujVykon() {
       }
     }
     loadStats()
-    const id = setInterval(loadStats, 15000)
+    const id = setInterval(loadStats, 60000) // Reduced frequency to 60 seconds
     return () => { mounted = false; clearInterval(id) }
   }, [selectedChatter, refreshKey, TEAM_ID])
 
@@ -166,7 +166,7 @@ function TvujVykon() {
       }
     }
     loadTimeline()
-    const id = setInterval(loadTimeline, 15000)
+    const id = setInterval(loadTimeline, 60000) // Reduced frequency to 60 seconds
     return () => { mounted = false; clearInterval(id) }
   }, [selectedChatter, refreshKey, TEAM_ID])
 

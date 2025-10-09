@@ -53,19 +53,11 @@ function LanguageSwitcher() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isChanging}
-        className="flex items-center space-x-2 px-4 py-3 rounded-lg border border-transparent text-pearl hover:bg-charcoal/20 hover:border-neon-orchid/20 hover:text-neon-orchid smooth-hover disabled:opacity-50 disabled:cursor-not-allowed w-full"
+        className="flex items-center justify-center w-10 h-10 rounded-lg border border-transparent text-pearl hover:bg-charcoal/20 hover:border-neon-orchid/20 hover:scale-110 smooth-hover disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="Change language"
+        title={currentLanguage.name}
       >
-        <span className="text-xl">{currentLanguage.flag}</span>
-        <span className="font-semibold">{currentLanguage.name}</span>
-        <svg 
-          className={`ml-auto w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <span className="text-2xl">{currentLanguage.flag}</span>
       </button>
 
       {isOpen && (
@@ -77,22 +69,22 @@ function LanguageSwitcher() {
           />
           
           {/* Dropdown */}
-          <div className="absolute bottom-full left-0 mb-2 w-full unified-glass rounded-lg border border-neon-orchid/30 overflow-hidden shadow-lg z-50">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 unified-glass rounded-lg border border-neon-orchid/30 overflow-hidden shadow-lg z-50 min-w-[140px]">
             {languages.map((language) => (
               <button
                 key={language.code}
                 onClick={() => handleLanguageChange(language.code)}
                 disabled={isChanging}
-                className={`w-full flex items-center space-x-3 px-4 py-3 text-left transition-colors ${
+                className={`w-full flex items-center space-x-2 px-3 py-2 text-left transition-colors ${
                   language.code === i18n.language
                     ? 'bg-gradient-to-r from-neon-orchid to-crimson text-white'
                     : 'text-pearl hover:bg-charcoal/20 hover:text-neon-orchid'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <span className="text-xl">{language.flag}</span>
-                <span className="font-semibold">{language.name}</span>
+                <span className="text-lg">{language.flag}</span>
+                <span className="font-medium text-sm">{language.name}</span>
                 {language.code === i18n.language && (
-                  <svg className="ml-auto w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="ml-auto w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 )}

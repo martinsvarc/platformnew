@@ -3,15 +3,19 @@ import { ChartSkeleton } from './LoadingSkeleton'
 
 function CumulativeChart({ data = [] }) {
   const [isLoading, setIsLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
   
-  // Simulate initial loading
+  // Only show loading skeleton on initial load, not on data refreshes
   useEffect(() => {
-    setIsLoading(true)
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [data])
+    if (initialLoad) {
+      setIsLoading(true)
+      const timer = setTimeout(() => {
+        setIsLoading(false)
+        setInitialLoad(false)
+      }, 600)
+      return () => clearTimeout(timer)
+    }
+  }, [initialLoad])
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return null
 

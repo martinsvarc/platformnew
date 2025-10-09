@@ -7,6 +7,7 @@ function League({ teamId, selectedChatter, refreshKey }) {
   const [activeTab, setActiveTab] = useState('daily')
   const [leagueData, setLeagueData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
   const [error, setError] = useState(null)
 
   // Load league data
@@ -19,7 +20,10 @@ function League({ teamId, selectedChatter, refreshKey }) {
         return
       }
       try {
-        setLoading(true)
+        // Only show loading skeleton on initial load, not on refreshes
+        if (initialLoad) {
+          setLoading(true)
+        }
         setError(null)
         console.log('Loading league data for teamId:', teamId, 'refreshKey:', refreshKey)
         // League always shows all users (it's a ranking/league)
@@ -33,12 +37,13 @@ function League({ teamId, selectedChatter, refreshKey }) {
       } finally {
         if (mounted) {
           setLoading(false)
+          setInitialLoad(false)
         }
       }
     }
     loadLeagueData()
     return () => { mounted = false }
-  }, [teamId, refreshKey])
+  }, [teamId, refreshKey, initialLoad])
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('cs-CZ', {
@@ -47,6 +52,13 @@ function League({ teamId, selectedChatter, refreshKey }) {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount)
+  }
+
+  const formatPoints = (points) => {
+    return new Intl.NumberFormat('cs-CZ', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(points) + ' bodů'
   }
 
   // Get current user's data for tabs
@@ -201,7 +213,7 @@ function League({ teamId, selectedChatter, refreshKey }) {
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-pearl font-bold text-sm">
-                      {formatCurrency(amount)}
+                      {activeTab === 'daily' ? formatCurrency(amount) : formatPoints(amount)}
                     </span>
                     {activeTab === 'daily' && player.trend > 0 && (
                       <span className="font-semibold text-xs flex items-center text-green-400">

@@ -268,7 +268,7 @@ function NavMenu() {
       </nav>
 
       {/* Language Switcher */}
-      <div className="p-4 border-t border-neon-orchid/20">
+      <div className="px-4 py-2 border-t border-neon-orchid/20 flex justify-center">
         <LanguageSwitcher />
       </div>
 

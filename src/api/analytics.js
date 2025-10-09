@@ -385,3 +385,85 @@ export async function getPaymentSequenceRetention(teamId, { from = null, to = nu
   }
 }
 
+// Get client activity heatmap - shows daily payment sums for clients who started on a specific date
+export async function getClientActivityHeatmap(teamId, { startDate = null, daysToShow = 30 } = {}) {
+  try {
+    const rows = await sql`
+      with client_first_payments as (
+        -- Get first payment date for each client
+        select 
+          p.client_id,
+          c.name as client_name,
+          min(p.paid_date) as first_payment_date
+        from payments p
+        left join clients c on c.id = p.client_id
+        where p.team_id = ${teamId}
+          and p.client_id is not null
+          and p.paid_date is not null
+        group by p.client_id, c.name
+      ),
+      filtered_clients as (
+        -- Filter clients who started on the specified date (if provided)
+        select 
+          client_id,
+          client_name,
+          first_payment_date
+        from client_first_payments
+        ${startDate ? sql`where first_payment_date = ${startDate}` : sql``}
+      ),
+      client_daily_sums as (
+        -- Get daily payment sums for each client
+        select 
+          fc.client_id,
+          fc.client_name,
+          fc.first_payment_date,
+          p.paid_date,
+          (p.paid_date - fc.first_payment_date) as day_offset,
+          sum(p.amount - COALESCE(p.fee_amount, 0)) as day_amount
+        from filtered_clients fc
+        join payments p on p.client_id = fc.client_id and p.team_id = ${teamId}
+        where (p.paid_date - fc.first_payment_date) >= 0 
+          and (p.paid_date - fc.first_payment_date) < ${daysToShow}
+        group by fc.client_id, fc.client_name, fc.first_payment_date, p.paid_date
+      ),
+      client_totals as (
+        -- Calculate total payments and activity for sorting
+        select 
+          client_id,
+          client_name,
+          first_payment_date,
+          sum(day_amount) as total_amount,
+          count(distinct day_offset) as active_days
+        from client_daily_sums
+        group by client_id, client_name, first_payment_date
+      )
+      select 
+        ct.client_id,
+        ct.client_name,
+        ct.first_payment_date::text,
+        ct.total_amount::float,
+        ct.active_days,
+        jsonb_object_agg(
+          cds.day_offset::text, 
+          cds.day_amount::float
+        ) as daily_amounts
+      from client_totals ct
+      left join client_daily_sums cds on cds.client_id = ct.client_id
+      group by ct.client_id, ct.client_name, ct.first_payment_date, ct.total_amount, ct.active_days
+      order by ct.total_amount desc
+    `
+    
+    return rows.map(row => ({
+      clientId: row.client_id,
+      clientName: row.client_name || 'Unknown',
+      firstPaymentDate: row.first_payment_date,
+      totalAmount: Number(row.total_amount) || 0,
+      activeDays: Number(row.active_days) || 0,
+      dailyAmounts: row.daily_amounts || {}
+    }))
+  } catch (error) {
+    console.error('Error in getClientActivityHeatmap:', error)
+    throw error
+  }
+}
+

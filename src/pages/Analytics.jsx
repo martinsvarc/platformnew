@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import AIAssistantBar from '../components/AIAssistantBar'
+import ClientActivityHeatmap from '../components/ClientActivityHeatmap'
 import { 
   getClientAnalytics, 
   getClientLifespan, 
@@ -606,6 +607,11 @@ function Analytics() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Client Activity Heatmap */}
+            <div className="mt-6">
+              <ClientActivityHeatmap teamId={teamId} filters={{ from, to }} />
             </div>
           </>
         ) : (
