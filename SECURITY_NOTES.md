@@ -2,42 +2,42 @@
 
 ## 🔐 Security Model
 
-### What /clear-storage Does
-- **Clears browser localStorage only** (local to that specific browser/device)
-- **Does NOT modify the database**
-- User must still provide valid username + password to login
-- After clearing, user can set up fresh 2FA
+### REMOVED: /clear-storage Page
+**This feature was removed due to security vulnerability.**
 
-### What It Does NOT Do
-- Does not bypass password authentication
-- Does not modify server-side user data
-- Does not grant access without credentials
+**The Problem:**
+- If attacker has your password, they could use /clear-storage to reset 2FA
+- Then set up THEIR OWN Touch ID/PIN
+- This defeats the entire purpose of 2FA!
+
+**Correct Approach:**
+- Only admins can reset user 2FA (via Team Members dashboard)
+- Users who are locked out must contact admin
+- This maintains 2FA security even if password is compromised
 
 ## 🚨 Attack Scenarios & Mitigations
 
-### Scenario 1: Physical Access to Logged-In Computer
-**Attack:** Someone with physical access tries to hijack 2FA
+### Scenario 1: Stolen Password (Without 2FA)
+**Attack:** Attacker knows your password
 **Mitigation:** 
-- ✅ `/clear-storage` only works when NOT logged in
-- ✅ Attacker must log you out first (you'd notice)
-- ✅ Still requires password to login
-- 🔒 **Best Practice:** Lock your computer when away (Cmd+Ctrl+Q on Mac, Win+L on Windows)
+- ✅ 2FA blocks login! Attacker can't access account
+- ✅ They don't have your Touch ID or PIN code
+- 🔒 **This is why 2FA exists!**
 
-### Scenario 2: Stolen Password
-**Attack:** Attacker knows your password AND has physical access
-**Mitigation:**
-- ⚠️ If password is compromised, attacker can access account regardless of 2FA reset
-- 🔒 **Solution:** Change your password immediately
-- 🔒 **Contact Admin:** Have admin reset your 2FA from the dashboard
-- 💡 **Admin can see:** When 2FA was last reset (audit trail)
-
-### Scenario 3: Domain Mismatch (Legitimate Use)
-**Use Case:** You set up 2FA on localhost, now stuck on production
+### Scenario 2: Lost Access to 2FA
+**Legitimate Issue:** You're locked out (domain mismatch, lost PIN, etc.)
 **Solution:**
-- ✅ Go to `/clear-storage` (while logged out)
-- ✅ Clear 2FA data
-- ✅ Login with password
-- ✅ Set up 2FA fresh on production domain
+- 🔒 Contact admin to reset your 2FA
+- 🔒 Admin uses "Reset 2FA" button in Team Members dashboard
+- 🔒 You login with password and set up 2FA fresh
+- ✅ This maintains security even if password is known
+
+### Scenario 3: Domain Mismatch
+**Use Case:** Set up 2FA on localhost, now stuck on production
+**Solution:**
+- 🔒 Clear browser data manually (F12 → Application → Clear Storage)
+- 🔒 OR contact admin to reset your 2FA
+- ✅ Then login and set up fresh 2FA on correct domain
 
 ## 🛡️ Security Best Practices
 
@@ -84,34 +84,39 @@
 3. Force user to set up 2FA again on next login
 4. Investigate any suspicious activity
 
-## 💡 Why This Design?
+## 💡 Why Admin-Only Reset?
 
-**Tradeoff:** Emergency recovery vs. Perfect security
-- Without `/clear-storage`: Users get permanently locked out (domain mismatch)
-- With `/clear-storage`: Small risk if password is compromised
-- **We choose:** User accessibility + password protection
+**Security > Convenience:**
+- 2FA protects against stolen passwords
+- Self-service reset would defeat this protection
+- Admin reset adds human verification layer
 
 **Alternative Approaches Considered:**
-1. ❌ No recovery page → Users get locked out permanently
-2. ❌ Email-based recovery → Requires email system integration
-3. ✅ **Current:** localStorage reset + password required → Balanced approach
+1. ❌ Self-service /clear-storage → Allows attackers with password to bypass 2FA
+2. ❌ Email-based recovery → Could work but adds complexity
+3. ✅ **Current:** Admin-only reset → Secure and simple
 
 ## 🎯 Bottom Line
 
 **Your account security depends on:**
-1. **Password strength** (most important)
-2. **Physical device security** (lock your screen)
-3. **2FA** (additional protection layer)
+1. **Password strength** (prevents initial access)
+2. **2FA** (protects even if password is stolen)
+3. **Admin-controlled reset** (prevents attacker from bypassing 2FA)
 
-**The `/clear-storage` page does NOT:**
-- Bypass password authentication
-- Grant unauthorized access
-- Weaken security if password is secure
+**Protection model:**
+- ❌ Just password → Can't login (needs 2FA)
+- ❌ Just 2FA → Can't login (needs password)
+- ✅ Password + 2FA → Can login
+- ❌ Password + reset attempt → Blocked (only admin can reset)
 
-**If someone has:**
-- ❌ Just physical access → Can't login (needs password)
-- ❌ Just your password → Can't login (needs 2FA or can't access /clear-storage if you're logged in)
-- ⚠️ Both password AND physical access → Account is at risk (but this is true with or without /clear-storage)
+**If locked out:**
+1. Contact admin
+2. Admin resets 2FA via dashboard
+3. Login with password
+4. Set up fresh 2FA
 
-**Solution if compromised:** Change password immediately + Admin resets 2FA
+**If compromised:**
+1. Change password immediately
+2. Contact admin to reset 2FA
+3. Check for unauthorized access
 
