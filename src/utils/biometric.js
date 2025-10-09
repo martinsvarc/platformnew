@@ -96,6 +96,8 @@ export async function registerBiometric(userId, username) {
 
     localStorage.setItem('biometric_credential', JSON.stringify(credentialData))
     localStorage.setItem('biometric_enabled', 'true')
+    // Store the domain where credentials were registered
+    localStorage.setItem('biometric_domain', window.location.hostname)
 
     return { success: true, credentialId: credential.id }
   } catch (error) {
@@ -174,8 +176,30 @@ export async function authenticateWithBiometric() {
  * Check if biometric is enabled for current device
  */
 export function isBiometricEnabled() {
-  return localStorage.getItem('biometric_enabled') === 'true' &&
-         localStorage.getItem('biometric_credential') !== null
+  const enabled = localStorage.getItem('biometric_enabled') === 'true'
+  const credential = localStorage.getItem('biometric_credential')
+  
+  if (!enabled || !credential) {
+    return false
+  }
+  
+  // Check if credential was registered on a different domain
+  try {
+    const credentialData = JSON.parse(credential)
+    const storedDomain = localStorage.getItem('biometric_domain')
+    const currentDomain = window.location.hostname
+    
+    // If domain has changed, credentials are invalid
+    if (storedDomain && storedDomain !== currentDomain) {
+      console.warn(`Biometric credentials were registered on ${storedDomain} but current domain is ${currentDomain}. Clearing invalid credentials.`)
+      disableBiometric()
+      return false
+    }
+  } catch (error) {
+    console.error('Error checking biometric domain:', error)
+  }
+  
+  return true
 }
 
 /**
@@ -184,6 +208,7 @@ export function isBiometricEnabled() {
 export function disableBiometric() {
   localStorage.removeItem('biometric_credential')
   localStorage.removeItem('biometric_enabled')
+  localStorage.removeItem('biometric_domain')
 }
 
 /**

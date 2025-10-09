@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { authenticateWithBiometric, isBiometricAvailable } from '../utils/biometric'
+import { authenticateWithBiometric, isBiometricAvailable, isBiometricEnabled } from '../utils/biometric'
 import { getBackgroundUrl } from '../api/settings'
 import { TEAM_ID } from '../api/config'
 
@@ -12,6 +12,7 @@ function BiometricVerification() {
   const [error, setError] = useState('')
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [isInitialAttempt, setIsInitialAttempt] = useState(true)
+  const [showDomainWarning, setShowDomainWarning] = useState(false)
   
   // Default background URL
   const DEFAULT_BG = 'https://res.cloudinary.com/dmbzcxhjn/image/upload/v1759767010/0a80caad8e77bea777fb41bf5438086e_ubbh2h.jpg'
@@ -92,6 +93,21 @@ function BiometricVerification() {
       if (!pendingVerification) {
         // No pending verification, redirect to login
         navigate('/login')
+        return
+      }
+
+      // Check if credentials are from a different domain
+      const storedDomain = localStorage.getItem('biometric_domain')
+      const currentDomain = window.location.hostname
+      if (storedDomain && storedDomain !== currentDomain) {
+        setShowDomainWarning(true)
+        setError(`Touch ID bylo nastaveno na ${storedDomain}. Pro použití na této doméně (${currentDomain}) je potřeba ho nastavit znovu.`)
+        return
+      }
+
+      // Check if biometric is enabled (this also validates domain)
+      if (!isBiometricEnabled()) {
+        setError('Touch ID není nastaveno pro tuto doménu. Přihlaste se heslem a nastavte Touch ID znovu.')
         return
       }
 
@@ -237,11 +253,24 @@ function BiometricVerification() {
           {error && (
             <div className="mb-6 bg-crimson/20 border border-crimson/50 rounded-xl p-4 animate-shake">
               <p className="text-crimson text-sm text-center font-semibold">{error}</p>
+              {showDomainWarning && (
+                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-yellow-300 text-xs text-center mb-2">
+                    💡 Touch ID credentials jsou vázány na doménu, kde byly vytvořeny.
+                  </p>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full bg-gradient-to-r from-neon-orchid to-crimson text-white font-bold py-2 px-4 rounded-lg hover:shadow-glow-purple transition-all text-sm"
+                  >
+                    Přihlásit se heslem a nastavit znovu
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Retry Button - only show if not loading AND (has error OR initial auto-attempt failed) */}
-          {!loading && !isInitialAttempt && (
+          {/* Retry Button - only show if not loading AND (has error OR initial auto-attempt failed) AND NOT domain warning */}
+          {!loading && !isInitialAttempt && !showDomainWarning && (
             <button
               onClick={() => handleBiometricVerify(false)}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:shadow-glow-purple transform hover:scale-105 transition-all duration-300 text-lg mb-4"

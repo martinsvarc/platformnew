@@ -101,6 +101,30 @@ Before deploying your app, ensure:
 
 ## Troubleshooting
 
+### Issue: Touch ID works on localhost but not on production (or vice versa)
+
+**Cause:** **Domain Mismatch** - Biometric credentials are tied to the domain where they were registered.
+
+**Symptoms:**
+- Login → Touch ID screen → Use Touch ID → Redirected back to login
+- Works on one domain (e.g., localhost) but not another (e.g., yourapp.vercel.app)
+
+**Solution:**
+1. The app will automatically detect this and show a warning
+2. Click "Přihlásit se heslem a nastavit znovu" (Login with password and set up again)
+3. Log in with your regular password
+4. Go to Settings and enable Touch ID again on the new domain
+5. The new credentials will work on this domain
+
+**Why this happens:**
+- Touch ID credentials registered on `localhost` won't work on `yourapp.vercel.app`
+- Each domain requires its own credential registration
+- This is a security feature of the Web Authentication API
+- **You need to set up Touch ID separately for each domain you use**
+
+**Quick Fix:**
+The app now automatically detects domain mismatches and clears invalid credentials. Just log in with password and re-enable Touch ID.
+
 ### Issue: "Biometric authentication is not available"
 
 **Check:**
