@@ -397,6 +397,19 @@ export async function declineUser(userId, teamId) {
   return result[0]
 }
 
+export async function reset2FA(userId, teamId) {
+  // Reset 2FA for a user - clear PIN hash, set two_fa_method to null, and require setup
+  const result = await sql`
+    update users
+    set pin_hash = null,
+        two_fa_method = null,
+        two_fa_setup_required = true
+    where id = ${userId} and team_id = ${teamId}
+    returning id, username, display_name, email, role, status, avatar_url
+  `
+  return result[0]
+}
+
 export async function getPaymentsCount(teamId) {
   const rows = await sql`
     select count(*) as count, sum(amount - fee_amount) as total_amount

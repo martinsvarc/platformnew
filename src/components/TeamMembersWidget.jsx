@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getTeamUsers, deleteUser, updateUser, confirmUser, declineUser } from '../api/queries'
+import { getTeamUsers, deleteUser, updateUser, confirmUser, declineUser, reset2FA } from '../api/queries'
 import { TEAM_ID } from '../api/config'
 import { useConfirm } from '../hooks/useConfirm'
+import { useToast } from '../contexts/ToastContext'
 
 function TeamMembersWidget() {
   const { t } = useTranslation()
   const { confirm, ConfirmDialog } = useConfirm()
+  const { toast } = useToast()
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -109,6 +111,28 @@ function TeamMembersWidget() {
     } catch (err) {
       console.error('Failed to decline team member:', err)
       setError('Zamítnutí člena selhalo')
+    }
+  }
+
+  const handleReset2FA = async (userId, displayName, username) => {
+    const memberName = displayName || username
+    const confirmed = await confirm(
+      `Resetovat 2FA (PIN/Touch ID) pro "${memberName}"? Uživatel bude muset nastavit 2FA znovu při příštím přihlášení.`,
+      'Resetovat 2FA'
+    )
+    if (!confirmed) return
+    
+    try {
+      setError('')
+      const updatedUser = await reset2FA(userId, TEAM_ID)
+      if (updatedUser) {
+        setMembers(prev => prev.map(m => m.id === userId ? updatedUser : m))
+        toast.success(`2FA pro uživatele "${memberName}" bylo resetováno`)
+      }
+    } catch (err) {
+      console.error('Failed to reset 2FA:', err)
+      setError('Resetování 2FA selhalo')
+      toast.error('Resetování 2FA selhalo')
     }
   }
 
@@ -313,6 +337,14 @@ function TeamMembersWidget() {
                         title="Upravit jméno"
                       >
                         ✏️ Upravit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReset2FA(member.id, member.display_name, member.username)}
+                        className="px-3 py-1 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-400 text-sm font-medium transition-all border border-yellow-500/50"
+                        title="Resetovat 2FA (PIN/Touch ID)"
+                      >
+                        🔐 Reset 2FA
                       </button>
                       <button
                         type="button"
