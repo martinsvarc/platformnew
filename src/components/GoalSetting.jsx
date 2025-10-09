@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { upsertSimpleGoals, getBestChatterChallenge, upsertBestChatterChallenge } from '../api/queries'
 import { TEAM_ID } from '../api/config'
 import { useToast } from '../contexts/ToastContext'
@@ -9,6 +10,7 @@ function parseNumberOr(defaultValue, value) {
 }
 
 function GoalSetting() {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const [daily, setDaily] = useState(40000)
   const [weekly, setWeekly] = useState(150000)
@@ -327,7 +329,7 @@ function GoalSetting() {
 
   return (
     <div className="w-full unified-glass p-6">
-      <h2 className="text-xl font-bold text-gradient-primary mb-4">Nastavení cílů</h2>
+      <h2 className="text-xl font-bold text-gradient-primary mb-4">{t('admin.goalSettings')}</h2>
       <form onSubmit={save} className="space-y-4">
         {/* Daily Goal */}
         <div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import AIAssistantBar from '../components/AIAssistantBar'
 import { 
@@ -13,12 +14,14 @@ import {
 } from '../api/analytics'
 
 function Analytics() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const teamId = user?.team_id
 
   // View state
   const [activeView, setActiveView] = useState('clients') // 'clients' or 'chatters'
   const [retentionView, setRetentionView] = useState('days') // 'days' or 'payments'
+  const [expandedChart, setExpandedChart] = useState(null) // Track which chart is expanded
 
   // Date filter state
   const [from, setFrom] = useState('')
@@ -163,12 +166,47 @@ function Analytics() {
     return Math.max(...sequentialPayments.map(s => s.avgAmount))
   }, [sequentialPayments])
 
+  // Expand button component
+  const ExpandButton = ({ chartId }) => (
+    <button
+      onClick={() => setExpandedChart(chartId)}
+      className="p-2 rounded-lg bg-velvet-gray/40 hover:bg-velvet-gray/60 text-pearl hover:text-white transition-all group"
+      title="Expand fullscreen"
+    >
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        className="h-5 w-5 group-hover:scale-110 transition-transform" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeWidth={2} 
+          d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" 
+        />
+      </svg>
+    </button>
+  )
+
+  // Close expanded chart on ESC key
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && expandedChart) {
+        setExpandedChart(null)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [expandedChart])
+
   if (loading) {
     return (
       <div className="min-h-screen p-3 sm:p-4 md:p-6 lg:ml-64 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-neon-orchid mb-4"></div>
-          <p className="text-pearl/70">Načítání analytiky...</p>
+          <p className="text-pearl/70">{t('common.loadingAnalytics')}</p>
         </div>
       </div>
     )
@@ -323,9 +361,12 @@ function Analytics() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Client Values Bar Chart */}
               <div className="unified-glass p-4">
-                <h2 className="text-lg font-bold text-gradient-gold mb-4">
-                  Top klienti podle hodnoty
-                </h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold text-gradient-gold">
+                    Top klienti podle hodnoty
+                  </h2>
+                  <ExpandButton chartId="topClients" />
+                </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
                   {clientValueDistribution.slice(0, 20).map((client) => (
                     <div key={client.clientId} className="flex items-center gap-3">
@@ -359,9 +400,12 @@ function Analytics() {
 
               {/* Sequential Payments Bar Chart */}
               <div className="unified-glass p-4">
-                <h2 className="text-lg font-bold text-gradient-gold mb-4">
-                  Průměrná hodnota 1., 2., 3... platby
-                </h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold text-gradient-gold">
+                    Průměrná hodnota 1., 2., 3... platby
+                  </h2>
+                  <ExpandButton chartId="sequentialPayments" />
+                </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
                   {sequentialPayments.map((payment) => (
                     <div key={payment.sequence} className="flex items-center gap-3">
@@ -399,9 +443,12 @@ function Analytics() {
 
             {/* Day of Week Heatmap */}
             <div className="unified-glass p-4">
-              <h2 className="text-lg font-bold text-gradient-gold mb-4">
-                Heatmapa dní v týdnu
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-gradient-gold">
+                  Heatmapa dní v týdnu
+                </h2>
+                <ExpandButton chartId="dayHeatmap" />
+              </div>
               <p className="text-sm text-pearl/70 mb-4">
                 Nejsvětlejší barva = nejvíce vybraných peněz
               </p>
@@ -436,10 +483,13 @@ function Analytics() {
             {/* Client Retention Chart */}
             <div className="unified-glass p-4 mt-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                <div>
-                  <h2 className="text-lg font-bold text-gradient-gold">
-                    Retence klientů
-                  </h2>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-bold text-gradient-gold">
+                      Retence klientů
+                    </h2>
+                    <ExpandButton chartId="clientRetention" />
+                  </div>
                   <p className="text-sm text-pearl/70 mt-1">
                     {retentionView === 'days' 
                       ? 'Kolik klientů posílá napříč více dny' 
@@ -562,9 +612,12 @@ function Analytics() {
           <>
             {/* Chatters View */}
             <div className="unified-glass p-4">
-              <h2 className="text-lg font-bold text-gradient-gold mb-4">
-                Výkon chatterů
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-gradient-gold">
+                  Výkon chatterů
+                </h2>
+                <ExpandButton chartId="chatterPerformance" />
+              </div>
               <div className="overflow-x-auto rounded-xl">
                 <table className="w-full text-left text-sm text-pearl">
                   <thead className="text-pearl/80 border-b border-velvet-gray">
@@ -626,6 +679,350 @@ function Analytics() {
           </>
         )}
       </div>
+
+      {/* Fullscreen Chart Modal */}
+      {expandedChart && (
+        <div 
+          className="fixed inset-0 z-50 bg-obsidian/95 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setExpandedChart(null)}
+        >
+          <div 
+            className="w-full h-full max-w-[95vw] max-h-[95vh] bg-gradient-to-br from-charcoal to-obsidian rounded-2xl border border-neon-orchid/30 shadow-2xl p-6 overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="text-xs text-pearl/50">Press ESC to close</div>
+              <button
+                onClick={() => setExpandedChart(null)}
+                className="p-2 rounded-lg bg-velvet-gray/40 hover:bg-crimson/60 text-pearl hover:text-white transition-all"
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-6 w-6" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M6 18L18 6M6 6l12 12" 
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Chart content */}
+            <div className="h-[calc(100%-4rem)]">
+              {expandedChart === 'topClients' && (
+                <div>
+                  <h2 className="text-3xl font-bold text-gradient-gold mb-6">
+                    Top klienti podle hodnoty
+                  </h2>
+                  <div className="space-y-3">
+                    {clientValueDistribution.map((client) => (
+                      <div key={client.clientId} className="flex items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xl text-pearl truncate">
+                              {client.clientName}
+                            </span>
+                            <span className="text-xl font-semibold text-pearl ml-4 whitespace-nowrap">
+                              {formatCurrency(client.totalAmount)}
+                            </span>
+                          </div>
+                          <div className="w-full bg-velvet-gray/40 rounded-full h-4">
+                            <div
+                              className="bg-gradient-to-r from-neon-orchid to-crimson h-4 rounded-full transition-all"
+                              style={{
+                                width: `${maxClientValue > 0 ? (client.totalAmount / maxClientValue) * 100 : 0}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {clientValueDistribution.length === 0 && (
+                      <p className="text-center text-pearl/50 py-16 text-xl">
+                        Žádná data k zobrazení
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {expandedChart === 'sequentialPayments' && (
+                <div>
+                  <h2 className="text-3xl font-bold text-gradient-gold mb-6">
+                    Průměrná hodnota 1., 2., 3... platby
+                  </h2>
+                  <div className="space-y-3">
+                    {sequentialPayments.map((payment) => (
+                      <div key={payment.sequence} className="flex items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xl text-pearl">
+                              {payment.sequence}. platba
+                            </span>
+                            <span className="text-xl font-semibold text-pearl ml-4 whitespace-nowrap">
+                              {formatCurrency(payment.avgAmount)}
+                            </span>
+                          </div>
+                          <div className="w-full bg-velvet-gray/40 rounded-full h-4">
+                            <div
+                              className="bg-gradient-to-r from-sunset-gold to-amber-500 h-4 rounded-full transition-all"
+                              style={{
+                                width: `${maxSequentialValue > 0 ? (payment.avgAmount / maxSequentialValue) * 100 : 0}%`
+                              }}
+                            />
+                          </div>
+                          <span className="text-base text-pearl/50 mt-1">
+                            {payment.count} plateb
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {sequentialPayments.length === 0 && (
+                      <p className="text-center text-pearl/50 py-16 text-xl">
+                        Žádná data k zobrazení
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {expandedChart === 'dayHeatmap' && (
+                <div>
+                  <h2 className="text-3xl font-bold text-gradient-gold mb-4">
+                    Heatmapa dní v týdnu
+                  </h2>
+                  <p className="text-lg text-pearl/70 mb-8">
+                    Nejsvětlejší barva = nejvíce vybraných peněz
+                  </p>
+                  <div className="grid grid-cols-7 gap-6">
+                    {dayOfWeekHeatmap.map((day) => (
+                      <div
+                        key={day.dayOfWeek}
+                        className="aspect-square rounded-xl flex flex-col items-center justify-center p-6 transition-all hover:scale-105"
+                        style={{
+                          backgroundColor: getHeatmapColor(day.totalAmount)
+                        }}
+                      >
+                        <div className="text-lg font-semibold text-pearl mb-2 text-center">
+                          {day.dayNameCzech}
+                        </div>
+                        <div className="text-3xl font-bold text-white mb-2">
+                          {formatCurrency(day.totalAmount)}
+                        </div>
+                        <div className="text-base text-pearl/70">
+                          {day.count} plateb
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {dayOfWeekHeatmap.length === 0 && (
+                    <p className="text-center text-pearl/50 py-16 text-xl">
+                      Žádná data k zobrazení
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {expandedChart === 'clientRetention' && (
+                <div>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <div>
+                      <h2 className="text-3xl font-bold text-gradient-gold mb-2">
+                        Retence klientů
+                      </h2>
+                      <p className="text-lg text-pearl/70">
+                        {retentionView === 'days' 
+                          ? 'Kolik klientů posílá napříč více dny' 
+                          : 'Kolik klientů se dostane k další platbě'}
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setRetentionView('days')}
+                        className={`px-5 py-3 rounded-lg font-semibold text-base transition-all ${
+                          retentionView === 'days'
+                            ? 'bg-gradient-to-r from-neon-orchid to-crimson text-white shadow-glow-purple'
+                            : 'bg-velvet-gray/40 text-pearl/70 hover:text-pearl'
+                        }`}
+                      >
+                        Aktivní dny
+                      </button>
+                      <button
+                        onClick={() => setRetentionView('payments')}
+                        className={`px-5 py-3 rounded-lg font-semibold text-base transition-all ${
+                          retentionView === 'payments'
+                            ? 'bg-gradient-to-r from-neon-orchid to-crimson text-white shadow-glow-purple'
+                            : 'bg-velvet-gray/40 text-pearl/70 hover:text-pearl'
+                        }`}
+                      >
+                        Sekvence plateb
+                      </button>
+                    </div>
+                  </div>
+
+                  {retentionView === 'days' ? (
+                    <div className="space-y-3">
+                      {clientDayRetention.map((item) => (
+                        <div key={item.daysActive} className="flex items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xl text-pearl">
+                                {item.daysActive} {item.daysActive === 1 ? 'den' : item.daysActive <= 4 ? 'dny' : 'dní'}
+                              </span>
+                              <div className="flex items-center gap-4">
+                                <span className="text-lg text-pearl/70">
+                                  {item.clientCount} klientů
+                                </span>
+                                <span className="text-xl font-semibold text-pearl ml-4 whitespace-nowrap">
+                                  {formatNumber(item.percentage, 1)}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-velvet-gray/40 rounded-full h-4">
+                              <div
+                                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-4 rounded-full transition-all"
+                                style={{
+                                  width: `${item.percentage}%`
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {clientDayRetention.length === 0 && (
+                        <p className="text-center text-pearl/50 py-16 text-xl">
+                          Žádná data k zobrazení
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {paymentSequenceRetention.map((item, index) => {
+                        const previousItem = index > 0 ? paymentSequenceRetention[index - 1] : null
+                        const stepRetention = previousItem 
+                          ? (item.clientsReached / previousItem.clientsReached) * 100 
+                          : 100
+                        
+                        return (
+                          <div key={item.sequence} className="flex items-center gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xl text-pearl">
+                                  {item.sequence}. platba
+                                </span>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-lg text-pearl/70">
+                                    {item.clientsReached} klientů
+                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xl font-bold text-gradient-primary whitespace-nowrap">
+                                      ({formatNumber(item.percentage, 1)}%)
+                                    </span>
+                                    {index > 0 && (
+                                      <span className="text-base font-semibold text-gradient-gold whitespace-nowrap">
+                                        [{formatNumber(stepRetention, 1)}% z předchozí]
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="w-full bg-velvet-gray/40 rounded-full h-4 relative">
+                                <div
+                                  className="bg-gradient-to-r from-violet-500 to-purple-500 h-4 rounded-full transition-all"
+                                  style={{
+                                    width: `${item.percentage}%`
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {paymentSequenceRetention.length === 0 && (
+                        <p className="text-center text-pearl/50 py-16 text-xl">
+                          Žádná data k zobrazení
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {expandedChart === 'chatterPerformance' && (
+                <div>
+                  <h2 className="text-3xl font-bold text-gradient-gold mb-6">
+                    Výkon chatterů
+                  </h2>
+                  <div className="overflow-x-auto rounded-xl">
+                    <table className="w-full text-left text-lg text-pearl">
+                      <thead className="text-pearl/80 border-b border-velvet-gray">
+                        <tr>
+                          <th className="p-4 text-xl">Chatter</th>
+                          <th className="p-4 text-xl text-right">Celkový příjem</th>
+                          <th className="p-4 text-xl text-right">Unikátní klienti</th>
+                          <th className="p-4 text-xl text-right">Transakce</th>
+                          <th className="p-4 text-xl text-right">Průměrná transakce</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {chatterAnalytics.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="p-6 text-center text-pearl/60 text-xl">
+                              Žádná data k zobrazení
+                            </td>
+                          </tr>
+                        ) : (
+                          chatterAnalytics.map((chatter) => (
+                            <tr
+                              key={chatter.id}
+                              className="border-b border-velvet-gray/60 hover:bg-velvet-gray/40"
+                            >
+                              <td className="p-4">
+                                <div className="flex items-center gap-4">
+                                  {chatter.avatarUrl ? (
+                                    <img
+                                      src={chatter.avatarUrl}
+                                      alt={chatter.displayName}
+                                      className="w-14 h-14 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-neon-orchid/30 to-crimson/30 flex items-center justify-center">
+                                      <span className="text-2xl">👤</span>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="font-semibold text-xl">{chatter.displayName}</div>
+                                    <div className="text-base text-pearl/60">@{chatter.username}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-4 text-right font-semibold text-xl">
+                                {formatCurrency(chatter.totalRevenue)}
+                              </td>
+                              <td className="p-4 text-right text-xl">{chatter.uniqueClients}</td>
+                              <td className="p-4 text-right text-xl">{chatter.totalTransactions}</td>
+                              <td className="p-4 text-right text-xl">
+                                {formatCurrency(chatter.avgTransactionValue)}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Assistant Bar */}
       <AIAssistantBar />

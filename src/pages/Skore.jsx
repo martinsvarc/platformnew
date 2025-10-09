@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { getTeamTotals, getActiveGoals, getBestChatterChallenge, getTopChatters } from '../api/queries'
 import { TEAM_ID } from '../api/config'
+import { formatCurrency, formatNumber } from '../utils/currency'
 
 function Skore() {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const [view, setView] = useState('daily') // 'daily' | 'weekly' | 'monthly' | 'bestChatter'
   const [revenue, setRevenue] = useState(0)
   const [totals, setTotals] = useState({ daily: 0, weekly: 0, monthly: 0 })
@@ -55,9 +58,7 @@ function Skore() {
   const currentVideo = videos[videoIndex]
 
   // Split number into characters for digit-by-digit animation (keeps non-digits like space)
-  const formatted = useMemo(() => new Intl.NumberFormat('cs-CZ', {
-    style: 'currency', currency: 'CZK', minimumFractionDigits: 0, maximumFractionDigits: 0
-  }).format(revenue), [revenue])
+  const formatted = useMemo(() => formatCurrency(revenue, i18n.language), [revenue, i18n.language])
   const chars = useMemo(() => formatted.split(''), [formatted])
 
   useEffect(() => {
@@ -137,7 +138,7 @@ function Skore() {
       const distance = end - now
       
       if (distance < 0) {
-        setTimeLeft('UKONČENO')
+        setTimeLeft(t('score.ended'))
         return
       }
       
@@ -152,22 +153,14 @@ function Skore() {
     updateCountdown()
     const id = setInterval(updateCountdown, 1000)
     return () => clearInterval(id)
-  }, [bestChatterChallenge])
+  }, [bestChatterChallenge, t])
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('cs-CZ', {
-      style: 'currency',
-      currency: 'CZK',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount)
+  const formatAmount = (amount) => {
+    return formatCurrency(amount, i18n.language)
   }
 
-  const formatNumber = (amount) => {
-    return new Intl.NumberFormat('cs-CZ', {
-      style: 'decimal',
-      maximumFractionDigits: 0
-    }).format(amount)
+  const formatNum = (amount) => {
+    return formatNumber(amount, i18n.language)
   }
 
   // Keyboard (TV remote) navigation for view buttons
@@ -219,9 +212,9 @@ function Skore() {
             color: '#ff69b4',
             textShadow: '0 0 20px rgba(255,105,180,0.8), 0 0 40px rgba(255,105,180,0.6)'
           }}>
-            Načítání...
+            {t('score.loading')}
           </h2>
-          <p className="text-pearl/70 text-lg">Připravuji tvá data</p>
+          <p className="text-pearl/70 text-lg">{t('score.preparingData')}</p>
         </div>
       </div>
     )
@@ -291,9 +284,9 @@ function Skore() {
         {/* View selector (Dnes / Tento Týden / Tento Měsíc / Best Chatter) with goals */}
         <div className="fixed top-2 sm:top-4 lg:top-6 left-1/2 -translate-x-1/2 z-10 flex flex-wrap items-center justify-center gap-1 sm:gap-2 lg:gap-3 animate-slide-in-right px-2 max-w-full">
           {[
-            { key: 'daily', label: 'Dnes' },
-            { key: 'weekly', label: 'Tento Týden' },
-            { key: 'monthly', label: 'Tento Měsíc' }
+            { key: 'daily', label: t('score.today') },
+            { key: 'weekly', label: t('score.thisWeek') },
+            { key: 'monthly', label: t('score.thisMonth') }
           ].filter((opt) => {
             // Only show goals that are active
             const goalData = goalDataByView[opt.key]
@@ -319,7 +312,7 @@ function Skore() {
                 <div className="flex flex-col items-center leading-tight">
                   <span className="tracking-wide whitespace-nowrap">{opt.label}</span>
                   <span className={`mt-0.5 sm:mt-1 text-[0.7rem] sm:text-[0.8rem] md:text-[0.9rem] lg:text-base font-medium ${isActive ? 'text-white' : 'text-pearl/90'} text-neon-glow whitespace-nowrap`}>
-                    {formatNumber(made)} / {formatNumber(goal)}
+                    {formatNum(made)} / {formatNum(goal)}
                   </span>
                 </div>
               </button>
@@ -340,9 +333,9 @@ function Skore() {
               title="Best Chatter Challenge"
             >
               <div className="flex flex-col items-center leading-tight">
-                <span className="tracking-wide whitespace-nowrap">🏆 Best Chatter</span>
+                <span className="tracking-wide whitespace-nowrap">🏆 {t('score.bestChatter')}</span>
                 <span className={`mt-0.5 sm:mt-1 text-[0.7rem] sm:text-[0.8rem] md:text-[0.9rem] lg:text-base font-medium ${view === 'bestChatter' ? 'text-white' : 'text-sunset-gold'} whitespace-nowrap`}>
-                  {timeLeft || 'Loading...'}
+                  {timeLeft || t('score.loading')}
                 </span>
               </div>
             </button>
@@ -414,9 +407,9 @@ function Skore() {
                         {topChatters[1].display_name || topChatters[1].username}
                       </h3>
                       <div className="text-pearl text-lg md:text-xl font-semibold">
-                        {formatCurrency(topChatters[1].total)}
+                        {formatAmount(topChatters[1].total)}
                       </div>
-                      <div className="text-pearl/60 text-xs mt-1">2nd</div>
+                      <div className="text-pearl/60 text-xs mt-1">{i18n.language === 'en' ? '2nd' : '2.'}</div>
                     </div>
                   </div>
                 )}
@@ -440,9 +433,9 @@ function Skore() {
                       {topChatters[0].display_name || topChatters[0].username}
                     </h3>
                     <div className="text-pearl text-xl md:text-2xl font-bold">
-                      {formatCurrency(topChatters[0].total)}
+                      {formatAmount(topChatters[0].total)}
                     </div>
-                    <div className="text-sunset-gold text-xs mt-1 font-semibold">WINNER</div>
+                    <div className="text-sunset-gold text-xs mt-1 font-semibold">{t('score.winner')}</div>
                   </div>
                 </div>
 
@@ -466,9 +459,9 @@ function Skore() {
                         {topChatters[2].display_name || topChatters[2].username}
                       </h3>
                       <div className="text-pearl text-lg md:text-xl font-semibold">
-                        {formatCurrency(topChatters[2].total)}
+                        {formatAmount(topChatters[2].total)}
                       </div>
-                      <div className="text-pearl/60 text-xs mt-1">3rd</div>
+                      <div className="text-pearl/60 text-xs mt-1">{i18n.language === 'en' ? '3rd' : '3.'}</div>
                     </div>
                   </div>
                 )}
@@ -490,7 +483,7 @@ function Skore() {
                           <div className="w-12 h-12 rounded-full border-2 border-neon-orchid/40 mb-2 shadow-md bg-gradient-to-br from-neon-orchid/30 to-crimson/30" />
                         )}
                         <span className="font-semibold text-center">{idx + 4}. {chatter.display_name || chatter.username}</span>
-                        <span className="text-pearl/60 text-[0.65rem]">{formatCurrency(chatter.total)}</span>
+                        <span className="text-pearl/60 text-[0.65rem]">{formatAmount(chatter.total)}</span>
                       </div>
                     ))}
                   </div>
@@ -530,7 +523,7 @@ function Skore() {
           {/* Increment indicator */}
           {isUpdating && (
             <div className="absolute -top-6 -right-6 bg-gradient-to-r from-sunset-gold to-neon-orchid text-white px-4 py-2 rounded-full text-lg font-bold animate-pulse shadow-lg">
-              +{formatCurrency(lastIncrement)}
+              +{formatAmount(lastIncrement)}
             </div>
           )}
         </div>
@@ -563,16 +556,16 @@ function Skore() {
               {timeLeft}
             </p>
             <p className="text-pearl/70 text-xs sm:text-sm mt-1 sm:mt-2 drop-shadow">
-              Čas do konce
+              {t('score.timeRemaining')}
             </p>
           </div>
         ) : (
           <>
             <p className="text-pearl/90 text-lg sm:text-xl md:text-2xl lg:text-3xl font-light drop-shadow px-2">
-              {view === 'daily' ? 'Dnes' : view === 'weekly' ? 'Tento Týden' : 'Tento Měsíc'}
+              {view === 'daily' ? t('score.today') : view === 'weekly' ? t('score.thisWeek') : t('score.thisMonth')}
             </p>
             <p className="text-pearl/70 text-xs sm:text-sm mt-2 sm:mt-4 drop-shadow px-2">
-              Aktualizace každých 15 sekund
+              {t('score.updating')}
             </p>
           </>
         )}
@@ -583,9 +576,9 @@ function Skore() {
         type="button"
         onClick={() => navigate('/nove')}
         className="fixed bottom-2 sm:bottom-4 left-2 sm:left-4 z-10 px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-lg bg-velvet-gray/80 text-pearl border border-neon-orchid/30 hover:shadow-glow smooth-hover animate-slide-in-left text-xs sm:text-sm md:text-base"
-        title="Home"
+        title={t('score.home')}
       >
-        🏠 <span className="hidden sm:inline">Home</span>
+        🏠 <span className="hidden sm:inline">{t('score.home')}</span>
       </button>
     </div>
   )

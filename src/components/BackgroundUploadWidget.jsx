@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getBackgroundUrl, updateBackgroundUrl, removeBackgroundUrl } from '../api/settings'
 import { TEAM_ID } from '../api/config'
 import { useConfirm } from '../hooks/useConfirm'
@@ -12,6 +13,7 @@ const CLOUDINARY_CLOUD_NAME = 'dmbzcxhjn'
 const CLOUDINARY_UPLOAD_PRESET = 'ml_default' // You may need to create an unsigned upload preset in Cloudinary
 
 function BackgroundUploadWidget() {
+  const { t } = useTranslation()
   const { confirm, ConfirmDialog } = useConfirm()
   const { toast } = useToast()
   const fileInputRef = useRef(null)
@@ -185,8 +187,8 @@ function BackgroundUploadWidget() {
   if (loading) {
     return (
       <div className="unified-glass p-4">
-        <h2 className="text-lg font-bold text-gradient-gold mb-3">Pozadí aplikace</h2>
-        <div className="text-pearl/70 text-center py-4">Načítání...</div>
+        <h2 className="text-lg font-bold text-gradient-gold mb-3">{t('admin.manageBackground')}</h2>
+        <div className="text-pearl/70 text-center py-4">{t('common.loading')}</div>
       </div>
     )
   }
@@ -196,7 +198,7 @@ function BackgroundUploadWidget() {
       <ConfirmDialog />
       <div className="unified-glass p-4">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-bold text-gradient-gold">Pozadí aplikace</h2>
+          <h2 className="text-lg font-bold text-gradient-gold">{t('admin.manageBackground')}</h2>
           <div className="flex gap-2">
             {!isDefaultBackground && (
               <button

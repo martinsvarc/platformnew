@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TEAM_ID } from '../api/config'
 import { 
   listBookmarkTables, 
@@ -144,7 +145,7 @@ function BookmarkTableCard({ table, onEdit, onDelete, onAddBookmark }) {
         <div className="flex-1 overflow-y-auto min-h-0">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <div className="animate-pulse text-pearl/50">Načítání...</div>
+              <div className="animate-pulse text-pearl/50">{t('common.loading')}</div>
             </div>
           ) : bookmarks.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-pearl/50">
@@ -307,6 +308,7 @@ function BookmarkTableCard({ table, onEdit, onDelete, onAddBookmark }) {
 }
 
 function Zalozky() {
+  const { t } = useTranslation()
   const { confirm, ConfirmDialog } = useConfirm()
   const { toast } = useToast()
   const [bookmarkTables, setBookmarkTables] = useState([])

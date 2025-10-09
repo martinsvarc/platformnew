@@ -150,4 +150,113 @@ export async function createPayment({
   }
 }
 
+export async function updatePayment(paymentId, teamId, updates) {
+  try {
+    console.log('=== PAYMENT UPDATE START ===')
+    console.log('updatePayment called with:', { paymentId, teamId, updates })
+    
+    if (!paymentId || !teamId) throw new Error('paymentId and teamId are required')
+    
+    // Get current payment data
+    const current = await sql`
+      select * from payments where id = ${paymentId} and team_id = ${teamId}
+    `
+    
+    if (current.length === 0) {
+      throw new Error('Payment not found')
+    }
+    
+    const payment = current[0]
+    
+    // Resolve or create client if provided
+    let clientId = payment.client_id
+    if (updates.client !== undefined) {
+      clientId = await resolveOrCreateClient(sql, teamId, updates.client)
+    }
+    
+    // Convert amount if provided
+    let amountNum = payment.amount
+    if (updates.amount !== undefined) {
+      amountNum = Number(updates.amount)
+      if (!Number.isFinite(amountNum) || amountNum < 0) throw new Error('Invalid amount')
+    }
+    
+    // Get values (use update value if provided, otherwise keep existing)
+    const userId = updates.userId !== undefined ? (updates.userId || null) : payment.user_id
+    const paidAt = updates.paidAt !== undefined ? updates.paidAt : payment.paid_at
+    const currency = updates.currency !== undefined ? updates.currency : payment.currency
+    const prodano = updates.prodano !== undefined ? (updates.prodano || null) : payment.prodano
+    const platforma = updates.platforma !== undefined ? (updates.platforma || null) : payment.platforma
+    const model = updates.model !== undefined ? (updates.model || null) : payment.model
+    const banka = updates.banka !== undefined ? (updates.banka || null) : payment.banka
+    const method = updates.method !== undefined ? (updates.method || null) : payment.method
+    const reference = updates.reference !== undefined ? (updates.reference || null) : payment.reference
+    const feeAmount = updates.feeAmount !== undefined ? (updates.feeAmount || 0) : (payment.fee_amount || 0)
+    const notes = updates.notes !== undefined ? (updates.notes || null) : payment.notes
+    const message = updates.message !== undefined ? (updates.message || null) : payment.message
+    
+    // Perform update
+    const result = await sql`
+      update payments
+      set 
+        user_id = ${userId},
+        client_id = ${clientId},
+        paid_at = ${paidAt},
+        amount = ${amountNum},
+        currency = ${currency},
+        prodano = ${prodano},
+        platforma = ${platforma},
+        model = ${model},
+        banka = ${banka},
+        method = ${method},
+        reference = ${reference},
+        fee_amount = ${feeAmount},
+        notes = ${notes},
+        message = ${message}
+      where id = ${paymentId} and team_id = ${teamId}
+      returning id, amount, fee_amount, (amount - fee_amount) as net_amount, paid_at, paid_at::date as paid_date,
+                user_id, client_id, currency, prodano, platforma, model, banka
+    `
+    
+    if (result.length === 0) {
+      throw new Error('Payment update failed')
+    }
+    
+    console.log('Payment updated successfully:', result[0])
+    console.log('=== PAYMENT UPDATE SUCCESS ===')
+    return result[0]
+  } catch (error) {
+    console.error('=== PAYMENT UPDATE ERROR ===')
+    console.error('Error in updatePayment:', error)
+    throw error
+  }
+}
+
+export async function deletePayment(paymentId, teamId) {
+  try {
+    console.log('=== PAYMENT DELETE START ===')
+    console.log('deletePayment called with:', { paymentId, teamId })
+    
+    if (!paymentId || !teamId) throw new Error('paymentId and teamId are required')
+    
+    const result = await sql`
+      delete from payments
+      where id = ${paymentId} and team_id = ${teamId}
+      returning id
+    `
+    
+    if (result.length === 0) {
+      throw new Error('Payment not found or delete failed')
+    }
+    
+    console.log('Payment deleted successfully:', result[0])
+    console.log('=== PAYMENT DELETE SUCCESS ===')
+    return result[0]
+  } catch (error) {
+    console.error('=== PAYMENT DELETE ERROR ===')
+    console.error('Error in deletePayment:', error)
+    throw error
+  }
+}
+
 

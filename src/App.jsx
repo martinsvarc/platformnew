@@ -15,7 +15,12 @@ import ProfilePicturePrompt from './components/ProfilePicturePrompt'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AdminStart from './pages/AdminStart'
+import BiometricVerification from './pages/BiometricVerification'
+import PINVerification from './pages/PINVerification'
+import PINSetup from './components/PINSetup'
+import TwoFASetupPrompt from './components/TwoFASetupPrompt'
 import Skore from './pages/Skore'
+import { useAuth } from './contexts/AuthContext'
 import TvujVykon from './pages/TvujVykon'
 import Klientiaplatby from './pages/Klientiaplatby'
 import Admin from './pages/Admin'
@@ -28,10 +33,23 @@ import { TEAM_ID } from './api/config'
 
 function AppContent() {
   const location = useLocation()
+  const { needs2FASetup, setNeeds2FASetup } = useAuth()
   const hideNav = location.pathname === '/skore'
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/adminstart'
+  const isAuthPage = location.pathname === '/login' || 
+                     location.pathname === '/register' || 
+                     location.pathname === '/adminstart' || 
+                     location.pathname === '/biometric-verify' || 
+                     location.pathname === '/pin-verify' ||
+                     location.pathname === '/setup-pin'
   const isAdminPage = location.pathname === '/admin'
   const shouldShowBackground = !hideNav && !isAuthPage && !isAdminPage
+
+  const handle2FASetupComplete = (method) => {
+    console.log('2FA setup completed with method:', method)
+    setNeeds2FASetup(false)
+    // Store the method for future reference
+    localStorage.setItem('two_fa_method', method)
+  }
   
   // Default background URL
   const DEFAULT_BG = 'https://res.cloudinary.com/dmbzcxhjn/image/upload/v1759767010/0a80caad8e77bea777fb41bf5438086e_ubbh2h.jpg'
@@ -82,6 +100,7 @@ function AppContent() {
       {!isAuthPage && <PaymentPopover />}
       {!isAuthPage && <NotificationContainer />}
       {!isAuthPage && <ProfilePicturePrompt />}
+      {!isAuthPage && <TwoFASetupPrompt isOpen={needs2FASetup} onSetupComplete={handle2FASetupComplete} />}
       <ToastContainer />
       <PageTransition>
         <Routes>
@@ -89,6 +108,11 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/adminstart" element={<AdminStart />} />
+          
+          {/* 2FA routes */}
+          <Route path="/biometric-verify" element={<BiometricVerification />} />
+          <Route path="/pin-verify" element={<PINVerification />} />
+          <Route path="/setup-pin" element={<PINSetup onComplete={() => handle2FASetupComplete('pin')} />} />
           
           {/* Protected routes */}
           <Route path="/" element={<Navigate to="/starteam" replace />} />

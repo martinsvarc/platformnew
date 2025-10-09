@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getTeamUsers } from '../api/queries'
 import { useAuth } from '../contexts/AuthContext'
 
 function StarTeam() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [teamMembers, setTeamMembers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -99,7 +101,7 @@ function StarTeam() {
             color: '#ff69b4',
             textShadow: '0 0 20px rgba(255,105,180,0.8), 0 0 40px rgba(255,105,180,0.6)'
           }}>
-            Načítání týmu...
+            {t('common.loadingTeam')}
           </h2>
         </div>
       </div>

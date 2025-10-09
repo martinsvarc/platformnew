@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { listBankAccounts, createBankAccount, deleteBankAccount, initializeDefaultBanks } from '../api/banks'
 import { TEAM_ID } from '../api/config'
 import { useConfirm } from '../hooks/useConfirm'
 
 function BankAccountsWidget() {
+  const { t } = useTranslation()
   const { confirm, ConfirmDialog } = useConfirm()
   const [banks, setBanks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -69,8 +71,8 @@ function BankAccountsWidget() {
   if (loading) {
     return (
       <div className="unified-glass p-4">
-        <h2 className="text-lg font-bold text-gradient-gold mb-3">Správa bankovních účtů</h2>
-        <div className="text-pearl/70 text-center py-4">Načítání...</div>
+        <h2 className="text-lg font-bold text-gradient-gold mb-3">{t('admin.manageBankAccounts')}</h2>
+        <div className="text-pearl/70 text-center py-4">{t('common.loading')}</div>
       </div>
     )
   }
@@ -80,7 +82,7 @@ function BankAccountsWidget() {
       <ConfirmDialog />
       <div className="unified-glass p-4">
         <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-bold text-gradient-gold">Správa bankovních účtů</h2>
+        <h2 className="text-lg font-bold text-gradient-gold">{t('admin.manageBankAccounts')}</h2>
         <button
           type="button"
           onClick={() => setShowAddForm(!showAddForm)}

@@ -14,7 +14,7 @@ export async function login({ username, password }) {
 
   // Find user by username across all teams
   const users = await sql`
-    select u.id, u.team_id, u.username, u.email, u.display_name, u.avatar_url, u.role, u.password_hash, u.status, t.name as team_name, t.slug as team_slug
+    select u.id, u.team_id, u.username, u.email, u.display_name, u.avatar_url, u.role, u.password_hash, u.status, u.language, t.name as team_name, t.slug as team_slug
     from users u
     join teams t on u.team_id = t.id
     where u.username = ${username}
@@ -29,6 +29,11 @@ export async function login({ username, password }) {
   // Check if user is active
   if (user.status === 'inactive') {
     throw new Error('Účet je deaktivován')
+  }
+
+  // Check if user is pending confirmation
+  if (user.status === 'pending') {
+    throw new Error('Váš účet čeká na schválení administrátorem. Počkejte prosím na potvrzení.')
   }
 
   // Verify password
@@ -60,7 +65,7 @@ export async function getCurrentUser(userId) {
   if (!userId) return null
 
   const users = await sql`
-    select id, team_id, username, email, display_name, avatar_url, role, status, last_login_at, created_at
+    select id, team_id, username, email, display_name, avatar_url, role, status, language, last_login_at, created_at
     from users 
     where id = ${userId}
   `
@@ -92,10 +97,109 @@ export async function updateUserAvatar(userId, avatarUrl) {
 
   // Get updated user data
   const users = await sql`
-    select id, team_id, username, email, display_name, avatar_url, role, status, last_login_at, created_at
+    select id, team_id, username, email, display_name, avatar_url, role, status, language, last_login_at, created_at
     from users 
     where id = ${userId}
   `
 
   return users.length > 0 ? users[0] : null
+}
+
+export async function updateUserLanguage(userId, language) {
+  if (!userId || !language) {
+    throw new Error('User ID and language are required')
+  }
+
+  // Validate language
+  if (!['cs', 'en'].includes(language)) {
+    throw new Error('Invalid language. Must be "cs" or "en"')
+  }
+
+  await sql`
+    update users 
+    set language = ${language}
+    where id = ${userId}
+  `
+
+  // Get updated user data
+  const users = await sql`
+    select id, team_id, username, email, display_name, avatar_url, role, status, language, last_login_at, created_at
+    from users 
+    where id = ${userId}
+  `
+
+  return users.length > 0 ? users[0] : null
+}
+
+/**
+ * Set up PIN 2FA for a user
+ */
+export async function setupPIN(userId, pinHash) {
+  if (!userId || !pinHash) {
+    throw new Error('User ID and PIN hash are required')
+  }
+
+  await sql`
+    update users 
+    set pin_hash = ${pinHash},
+        two_fa_method = 'pin',
+        two_fa_setup_required = false
+    where id = ${userId}
+  `
+
+  return { success: true }
+}
+
+/**
+ * Set up biometric 2FA for a user
+ */
+export async function setupBiometric(userId) {
+  if (!userId) {
+    throw new Error('User ID is required')
+  }
+
+  await sql`
+    update users 
+    set two_fa_method = 'biometric',
+        two_fa_setup_required = false
+    where id = ${userId}
+  `
+
+  return { success: true }
+}
+
+/**
+ * Get user's 2FA settings
+ */
+export async function get2FASettings(userId) {
+  if (!userId) return null
+
+  const users = await sql`
+    select two_fa_method, two_fa_setup_required, pin_hash
+    from users 
+    where id = ${userId}
+  `
+
+  return users.length > 0 ? users[0] : null
+}
+
+/**
+ * Verify PIN for a user
+ */
+export async function verifyUserPIN(userId, pinHash) {
+  if (!userId) {
+    throw new Error('User ID is required')
+  }
+
+  const users = await sql`
+    select pin_hash
+    from users 
+    where id = ${userId}
+  `
+
+  if (users.length === 0 || !users[0].pin_hash) {
+    throw new Error('PIN not set up for this user')
+  }
+
+  return users[0].pin_hash === pinHash
 }

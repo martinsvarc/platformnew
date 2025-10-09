@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next'
+
 function TableSkeleton({ rows = 5, columns = 6, type = 'default' }) {
+  const { t } = useTranslation()
   // Subtle shimmer effect classes
   const shimmerClasses = 'relative overflow-hidden rounded bg-gradient-to-r from-charcoal/15 via-velvet-gray/20 to-charcoal/15'
   
@@ -17,18 +20,19 @@ function TableSkeleton({ rows = 5, columns = 6, type = 'default' }) {
     return (
       <div className="overflow-x-auto unified-glass animate-fade-in">
         <table className="w-full text-left text-sm text-pearl">
-          <thead className="text-pearl/80">
+          <thead className="text-pearl/80 sticky top-0 bg-charcoal z-10">
             <tr className="border-b border-velvet-gray">
-              <th className="p-3">Jméno</th>
-              <th className="p-3">Výplata</th>
-              <th className="p-3">Poznámky</th>
-              <th className="p-3">Chatter (komu patří)</th>
-              <th className="p-3 text-center">Email</th>
-              <th className="p-3 text-center">Telefon</th>
-              <th className="p-3">Kdy naposledy poslal?</th>
-              <th className="p-3">Past 30 Days</th>
-              <th className="p-3">Banks</th>
-              <th className="p-3">Total</th>
+              <th className="p-3 bg-charcoal">{t('clients.clientName')}</th>
+              <th className="p-3 bg-charcoal">{t('clients.payout')}</th>
+              <th className="p-3 bg-charcoal">{t('common.notes')}</th>
+              <th className="p-3 bg-charcoal">Chatter</th>
+              <th className="p-3 text-center bg-charcoal">Email</th>
+              <th className="p-3 text-center bg-charcoal">Telefon</th>
+              <th className="p-3 bg-charcoal">Kdy naposledy poslal?</th>
+              <th className="p-3 bg-charcoal">Dnes</th>
+              <th className="p-3 bg-charcoal">Past 30 Days</th>
+              <th className="p-3 bg-charcoal">Total</th>
+              <th className="p-3 bg-charcoal">Banks</th>
             </tr>
           </thead>
           <tbody>
@@ -78,13 +82,18 @@ function TableSkeleton({ rows = 5, columns = 6, type = 'default' }) {
                     <ShimmerOverlay />
                   </div>
                 </td>
-                <td className="p-3 text-center">
-                  <div className={`${shimmerClasses} h-9 w-9 rounded-full mx-auto shadow-[0_0_6px_rgba(218,112,214,0.06)]`} style={{ animationDelay: `${i * 0.02 + 0.09}s` }}>
+                <td className="p-3">
+                  <div className={`${shimmerClasses} h-6 w-24 rounded-md`} style={{ animationDelay: `${i * 0.02 + 0.09}s` }}>
                     <ShimmerOverlay />
                   </div>
                 </td>
                 <td className="p-3">
                   <div className={`${shimmerClasses} h-6 w-24 rounded-md`} style={{ animationDelay: `${i * 0.02 + 0.1}s` }}>
+                    <ShimmerOverlay />
+                  </div>
+                </td>
+                <td className="p-3 text-center">
+                  <div className={`${shimmerClasses} h-9 w-9 rounded-full mx-auto shadow-[0_0_6px_rgba(218,112,214,0.06)]`} style={{ animationDelay: `${i * 0.02 + 0.11}s` }}>
                     <ShimmerOverlay />
                   </div>
                 </td>

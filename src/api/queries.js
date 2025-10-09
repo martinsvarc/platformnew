@@ -305,7 +305,7 @@ export async function updateClient(teamId, clientId, fields) {
 export async function listPayments(teamId, { from = null, to = null, platform = null, userId = null } = {}) {
   const rows = await sql`
     select p.id, p.paid_at, p.paid_date, p.amount::float as amount, (p.amount - COALESCE(p.fee_amount, 0))::float as net_amount,
-           p.currency, p.prodano, p.platforma, p.model, p.banka, p.status,
+           p.currency, p.prodano, p.platforma, p.model, p.banka, p.status, p.user_id,
            c.name as client_name, u.display_name as chatter
     from payments p
     left join clients c on c.id = p.client_id
@@ -369,6 +369,28 @@ export async function deleteUser(userId, teamId) {
   const result = await sql`
     update users
     set deleted_at = now()
+    where id = ${userId} and team_id = ${teamId}
+    returning id
+  `
+  return result[0]
+}
+
+export async function confirmUser(userId, teamId) {
+  // Set user status to 'active'
+  const result = await sql`
+    update users
+    set status = 'active'
+    where id = ${userId} and team_id = ${teamId}
+    returning id, username, display_name, email, role, status, avatar_url
+  `
+  return result[0]
+}
+
+export async function declineUser(userId, teamId) {
+  // Set user status to 'declined' or soft delete
+  const result = await sql`
+    update users
+    set status = 'declined', deleted_at = now()
     where id = ${userId} and team_id = ${teamId}
     returning id
   `

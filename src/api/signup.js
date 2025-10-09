@@ -34,11 +34,12 @@ export async function signup({ teamSlug, username, email, displayName, password,
   const exists = await sql`select 1 from users where team_id = ${team.id} and username = ${username}`
   if (exists.length > 0) throw new Error('Uživatel s tímto jménem v týmu již existuje')
 
-  // Create user with specified role
+  // Create user with specified role - set status to 'pending' for regular members, 'active' for admins
+  const status = role === 'admin' ? 'active' : 'pending'
   const inserted = await sql`
-    insert into users (team_id, username, email, display_name, avatar_url, password_hash, role)
-    values (${team.id}, ${username}, ${email || null}, ${displayName || null}, ${avatarUrl || null}, ${encryptedHash}, ${role}::user_role)
-    returning id, team_id, username, email, display_name, role, created_at
+    insert into users (team_id, username, email, display_name, avatar_url, password_hash, role, status)
+    values (${team.id}, ${username}, ${email || null}, ${displayName || null}, ${avatarUrl || null}, ${encryptedHash}, ${role}::user_role, ${status})
+    returning id, team_id, username, email, display_name, role, status, created_at
   `
   
   const result = inserted[0]

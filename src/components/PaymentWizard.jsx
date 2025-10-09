@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Confetti from 'react-confetti'
 import { createPayment } from '../api/payments'
 import { listClients } from '../api/queries'
@@ -8,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 
 function PaymentWizard({ onSuccess, onClose }) {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { toast } = useToast()
   const amountPresets = [100, 200, 300, 500, 750, 1000, 1500, 2000, 5000]
@@ -409,7 +411,7 @@ function PaymentWizard({ onSuccess, onClose }) {
                     />
                   </div>
                   <textarea
-                    placeholder="Poznámky"
+                    placeholder={t('common.notes')}
                     value={form.newClientNotes}
                     onChange={(e) => setForm(f => ({ ...f, newClientNotes: e.target.value }))}
                     className="w-full min-h-[84px] py-3 px-4 rounded-xl bg-obsidian border border-velvet-gray focus:border-neon-orchid focus:shadow-glow-purple outline-none"
@@ -474,7 +476,7 @@ function PaymentWizard({ onSuccess, onClose }) {
             <div className="space-y-4">
               <div className="text-center text-lg font-medium">Model</div>
               {modelsLoading ? (
-                <div className="text-center text-pearl/60">Načítání modelek...</div>
+                <div className="text-center text-pearl/60">{t('common.loadingModels')}</div>
               ) : modelOptions.length === 0 ? (
                 <div className="text-center text-pearl/60">Žádné modelky. Přidejte je v Admin.</div>
               ) : (
@@ -492,7 +494,7 @@ function PaymentWizard({ onSuccess, onClose }) {
             <div className="space-y-4">
               <div className="text-center text-lg font-medium">Banka</div>
               {banksLoading ? (
-                <div className="text-center text-pearl/60">Načítání účtů...</div>
+                <div className="text-center text-pearl/60">{t('common.loadingAccounts')}</div>
               ) : bankaOptions.length === 0 ? (
                 <div className="text-center text-pearl/60">Žádné účty. Přidejte je v Admin.</div>
               ) : (

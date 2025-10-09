@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCelebration } from '../contexts/CelebrationContext'
 import { useToast } from '../contexts/ToastContext'
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from './LanguageSwitcher'
 
 function NavMenu() {
   const location = useLocation()
@@ -10,6 +12,7 @@ function NavMenu() {
   const { user, logout, updateUserAvatar } = useAuth()
   const { isCelebrating } = useCelebration()
   const { toast } = useToast()
+  const { t } = useTranslation()
   const [isHovering, setIsHovering] = useState(false)
   const [showFireworks, setShowFireworks] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -79,13 +82,13 @@ function NavMenu() {
   }
 
   const allNavItems = [
-    { path: '/starteam', label: 'Star Team', icon: '⭐' },
-    { path: '/skore', label: 'Skóre', icon: '📊' },
-    { path: '/tvuj-vykon', label: 'Tvůj Výkon', icon: '📈' },
-    { path: '/klientiaplatby', label: 'Klienti a Platby', icon: '🗂️' },
-    { path: '/zalozky', label: 'Záložky', icon: '🔖' },
-    { path: '/admin', label: 'Admin', icon: '🛠️', adminOnly: true },
-    { path: '/analytics', label: 'Analytika', icon: '💹', adminOnly: true }
+    { path: '/starteam', label: t('nav.starTeam'), icon: '⭐' },
+    { path: '/skore', label: t('nav.score'), icon: '📊' },
+    { path: '/tvuj-vykon', label: t('nav.yourPerformance'), icon: '📈' },
+    { path: '/klientiaplatby', label: t('nav.clientsPayments'), icon: '🗂️' },
+    { path: '/zalozky', label: t('nav.bookmarks'), icon: '🔖' },
+    { path: '/admin', label: t('nav.admin'), icon: '🛠️', adminOnly: true },
+    { path: '/analytics', label: t('nav.analytics'), icon: '💹', adminOnly: true }
   ]
 
   // Filter navigation items based on user role
@@ -121,10 +124,10 @@ function NavMenu() {
       const base64String = reader.result
       try {
         await updateUserAvatar(base64String)
-        toast.success('Profilový obrázek byl úspěšně nahrán')
+        toast.success(t('profile.uploadSuccess'))
       } catch (error) {
         console.error('Error updating avatar:', error)
-        toast.error('Nepodařilo se nahrát profilový obrázek')
+        toast.error(t('profile.uploadError'))
       }
     }
     reader.readAsDataURL(file)
@@ -202,7 +205,7 @@ function NavMenu() {
             {/* Upload overlay on hover */}
             {isHovering && (
               <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center z-20 transition-opacity duration-300">
-                <span className="text-white text-sm font-semibold">📸 Změnit</span>
+                <span className="text-white text-sm font-semibold">📸 {t('nav.changePhoto')}</span>
               </div>
             )}
             
@@ -232,11 +235,11 @@ function NavMenu() {
             )}
             {/* User Name */}
             <h3 className="text-pearl font-semibold text-lg">
-              {user?.display_name || user?.username || 'Uživatel'}
+              {user?.display_name || user?.username || t('profile.user')}
             </h3>
             <p className="text-pearl/70 text-sm capitalize">
-              {user?.role === 'admin' ? 'Administrátor' : 
-               user?.role === 'manager' ? 'Manažer' : 'Člen'}
+              {user?.role === 'admin' ? t('nav.administrator') : 
+               user?.role === 'manager' ? t('nav.manager') : t('nav.member')}
             </p>
           </div>
         </div>
@@ -264,6 +267,11 @@ function NavMenu() {
         ))}
       </nav>
 
+      {/* Language Switcher */}
+      <div className="p-4 border-t border-neon-orchid/20">
+        <LanguageSwitcher />
+      </div>
+
       {/* Logout Button */}
       <div className="p-4 border-t border-neon-orchid/20">
         <button
@@ -271,7 +279,7 @@ function NavMenu() {
           className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg border border-transparent text-pearl hover:bg-crimson/20 hover:text-crimson hover:border-crimson/20 smooth-hover"
         >
           <span className="text-xl">🚪</span>
-          <span className="font-semibold">Odhlásit se</span>
+          <span className="font-semibold">{t('nav.logout')}</span>
         </button>
       </div>
 

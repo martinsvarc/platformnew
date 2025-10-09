@@ -2,11 +2,13 @@ import League from '../components/League'
 import StatsDashboard from '../components/StatsDashboard'
 import CumulativeChart from '../components/CumulativeChart'
 import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getUserTotals, getTeamUsers, getPaymentsCount, getDailyPaymentTimeline, getClientStats } from '../api/queries'
 import { sql } from '../api/db'
 import { TEAM_ID, USER_ID } from '../api/config'
 
 function TvujVykon() {
+  const { t } = useTranslation()
   const [teamUsers, setTeamUsers] = useState([])
   const [selectedChatter, setSelectedChatter] = useState('all')
   const [stats, setStats] = useState({ dailyVolume: 0, newClients: 0, lastHour: 0, totalClients: 0, totalEarned: 0, avgClient: 0 })
@@ -50,11 +52,11 @@ function TvujVykon() {
     return () => clearTimeout(timeoutId)
   }, [getNextMidnightPrague, forceRefresh])
 
-  // Create chatters list with "Všichni" option and team users
+  // Create chatters list with "All" option and team users
   const chatters = useMemo(() => {
-    const allOption = { id: 'all', name: 'Všichni', display_name: 'Všichni' }
+    const allOption = { id: 'all', name: t('common.all'), display_name: t('common.all') }
     return [allOption, ...teamUsers]
-  }, [teamUsers])
+  }, [teamUsers, t])
 
   // Load team users and debug payments
   useEffect(() => {
@@ -81,7 +83,7 @@ function TvujVykon() {
         console.log('Recent payments:', recentPayments)
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Načtení uživatelů selhalo', e)
+        console.error(t('performance.loadingUsersFailed'), e)
       }
     }
     loadUsers()
@@ -124,13 +126,13 @@ function TvujVykon() {
         })
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Načtení výkonu selhalo', e)
+        console.error(t('performance.loadingFailed'), e)
       }
     }
     loadStats()
     const id = setInterval(loadStats, 15000)
     return () => { mounted = false; clearInterval(id) }
-  }, [selectedChatter, refreshKey])
+  }, [selectedChatter, refreshKey, t])
 
   // Load timeline data based on selected chatter and refresh key
   useEffect(() => {
@@ -159,16 +161,16 @@ function TvujVykon() {
         <div className="relative mb-4">
           <div className="text-center">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gradient-primary mb-1">
-              Liga
+              {t('performance.league')}
             </h1>
             <p className="text-pearl/70 text-xs sm:text-sm">
-              Top výkony a trendy
+              {t('performance.topPerformance')}
             </p>
           </div>
           
           {/* Filter - responsive positioning */}
           <div className="mt-3 sm:mt-0 sm:absolute sm:top-0 sm:right-0 flex flex-wrap items-center justify-center sm:justify-end gap-2">
-            <label className="text-pearl/80 text-xs sm:text-sm">Chatter:</label>
+            <label className="text-pearl/80 text-xs sm:text-sm">{t('performance.chatterLabel')}</label>
             <select
               className="bg-obsidian border border-velvet-gray rounded-lg px-2 sm:px-3 py-1.5 text-pearl text-xs sm:text-sm focus:border-neon-orchid focus:shadow-glow-purple outline-none flex-1 sm:flex-none min-w-[120px]"
               value={selectedChatter}
@@ -184,7 +186,7 @@ function TvujVykon() {
               onClick={() => window.location.reload()}
               className="bg-neon-orchid text-obsidian px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium hover:bg-neon-orchid/80 transition-colors whitespace-nowrap"
             >
-              Refresh
+              {t('performance.refresh')}
             </button>
           </div>
         </div>
@@ -193,13 +195,13 @@ function TvujVykon() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
           {/* Left column - Stats Dashboard */}
           <div className="unified-glass p-2 sm:p-3 md:p-4">
-            <h2 className="text-base sm:text-lg font-bold text-gradient-primary mb-2 text-center">Tvůj Výkon</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gradient-primary mb-2 text-center">{t('performance.yourPerformance')}</h2>
             <StatsDashboard stats={stats} />
           </div>
           
           {/* Right column - League */}
           <div className="unified-glass p-2 sm:p-3 md:p-4">
-            <h2 className="text-base sm:text-lg font-bold text-gradient-primary mb-2 text-center">Liga</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gradient-primary mb-2 text-center">{t('performance.league')}</h2>
             <League teamId={TEAM_ID} selectedChatter={selectedChatter} refreshKey={refreshKey} />
             {!TEAM_ID && (
               <div className="text-red-400 text-xs text-center mt-2">

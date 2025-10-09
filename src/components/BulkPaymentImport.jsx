@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { parseTSVData, bulkImportPayments, previewImport } from '../api/bulkImport'
 import { TEAM_ID } from '../api/config'
 
 function BulkPaymentImport() {
+  const { t } = useTranslation()
   const [tsvInput, setTsvInput] = useState('')
   const [preview, setPreview] = useState(null)
   const [parseErrors, setParseErrors] = useState([])
@@ -97,7 +99,7 @@ function BulkPaymentImport() {
   return (
     <div className="unified-glass p-4 sm:p-6">
       <h2 className="text-lg sm:text-xl font-bold text-gradient-gold mb-2">
-        Hromadný import plateb
+        {t('admin.bulkImport')}
       </h2>
       <p className="text-pearl/70 text-xs sm:text-sm mb-4">
         Vložte data ve formátu: Datum (M/D/YYYY)  Jméno klienta  Částka  Je nový (yes/no)  Model

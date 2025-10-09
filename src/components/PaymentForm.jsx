@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPayment } from '../api/payments'
 import { listBankAccounts } from '../api/banks'
 import { listModels } from '../api/models'
@@ -6,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 
 function PaymentForm() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { toast } = useToast()
   const [formData, setFormData] = useState({
@@ -337,7 +339,7 @@ function PaymentForm() {
           <div className="lg:col-span-1">
             <h3 className="text-pearl font-semibold text-sm mb-2">Model</h3>
             {modelsLoading ? (
-              <div className="text-pearl/60 text-xs text-center py-3">Načítání...</div>
+              <div className="text-pearl/60 text-xs text-center py-3">{t('common.loading')}</div>
             ) : (
               <div className="space-y-1">
                 {modelOptions.length === 0 ? (
@@ -368,7 +370,7 @@ function PaymentForm() {
           <div className="lg:col-span-1">
             <h3 className="text-pearl font-semibold text-sm mb-2">Banka</h3>
             {banksLoading ? (
-              <div className="text-pearl/60 text-xs text-center py-3">Načítání...</div>
+              <div className="text-pearl/60 text-xs text-center py-3">{t('common.loading')}</div>
             ) : (
               <div className="space-y-1">
                 {bankaOptions.length === 0 ? (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from 'react-i18next'
 import { getBackgroundUrl } from '../api/settings'
 import { TEAM_ID } from '../api/config'
 
@@ -14,6 +15,7 @@ function Login() {
   
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // Default background URL (same as App.jsx)
   const DEFAULT_BG = 'https://res.cloudinary.com/dmbzcxhjn/image/upload/v1759767010/0a80caad8e77bea777fb41bf5438086e_ubbh2h.jpg'
@@ -62,16 +64,23 @@ function Login() {
       })
       
       if (result.success) {
-        navigate('/starteam')
+        // If biometric is required, redirect to biometric verification page
+        if (result.requireBiometric) {
+          navigate('/biometric-verify')
+        } else {
+          // Otherwise go directly to the app
+          navigate('/starteam')
+        }
       } else {
         setError(result.error)
       }
     } catch (err) {
-      setError('Nastala neočekávaná chyba')
+      setError(t('auth.unexpectedError'))
     } finally {
       setLoading(false)
     }
   }
+
 
   return (
     <div 
@@ -109,7 +118,7 @@ function Login() {
             {/* Username */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-pearl mb-2">
-                Uživatelské jméno
+                {t('auth.username')}
               </label>
               <input
                 type="text"
@@ -119,14 +128,14 @@ function Login() {
                 onChange={handleChange}
                 required
                 className="w-full px-5 py-4 bg-obsidian/60 border border-neon-orchid/40 rounded-xl text-pearl placeholder-pearl/60 focus:outline-none focus:ring-2 focus:ring-neon-orchid focus:border-transparent transition-all duration-300 hover:border-neon-orchid/60"
-                placeholder="Zadejte uživatelské jméno"
+                placeholder={t('auth.enterUsername')}
               />
             </div>
 
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-pearl mb-2">
-                Heslo
+                {t('auth.password')}
               </label>
               <input
                 type="password"
@@ -136,7 +145,7 @@ function Login() {
                 onChange={handleChange}
                 required
                 className="w-full px-5 py-4 bg-obsidian/60 border border-neon-orchid/40 rounded-xl text-pearl placeholder-pearl/60 focus:outline-none focus:ring-2 focus:ring-neon-orchid focus:border-transparent transition-all duration-300 hover:border-neon-orchid/60"
-                placeholder="Zadejte heslo"
+                placeholder={t('auth.enterPassword')}
               />
             </div>
 
@@ -156,10 +165,10 @@ function Login() {
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Přihlašování...</span>
+                  <span>{t('auth.loggingIn')}</span>
                 </div>
               ) : (
-                'Přihlásit se'
+                t('auth.login')
               )}
             </button>
           </form>
@@ -167,12 +176,12 @@ function Login() {
           {/* Register Link */}
           <div className="mt-6 text-center">
             <p className="text-pearl/70 text-sm">
-              Nemáte účet?{' '}
+              {t('auth.noAccount')}{' '}
               <Link 
                 to="/register" 
                 className="text-neon-orchid hover:text-crimson font-semibold transition-colors"
               >
-                Zaregistrujte se
+                {t('auth.registerNow')}
               </Link>
             </p>
           </div>
