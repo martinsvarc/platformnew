@@ -74,30 +74,39 @@ function Login() {
     setError('')
 
     try {
+      console.log('Login attempt:', { username: formData.username })
       const result = await login({
         username: formData.username,
         password: formData.password
       })
       
+      console.log('Login result:', result)
+      
       if (result.success) {
         // Check what type of verification/setup is required
         if (result.require2FASetup) {
+          console.log('Navigating to /starteam for 2FA setup')
           // First time user - show 2FA setup prompt (will appear on /starteam)
           navigate('/starteam')
         } else if (result.requireBiometric) {
+          console.log('Navigating to /biometric-verify')
           // User has biometric enabled - verify with Touch ID
           navigate('/biometric-verify')
         } else if (result.requirePIN) {
+          console.log('Navigating to /pin-verify')
           // User has PIN enabled - verify with PIN
           navigate('/pin-verify')
         } else {
+          console.log('Navigating to /starteam (no 2FA)')
           // No 2FA or already verified - go to app
           navigate('/starteam')
         }
       } else {
+        console.error('Login failed:', result.error)
         setError(result.error)
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError(t('auth.unexpectedError'))
     } finally {
       setLoading(false)
