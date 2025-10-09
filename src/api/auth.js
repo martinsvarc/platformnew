@@ -14,7 +14,7 @@ export async function login({ username, password }) {
 
   // Find user by username across all teams
   const users = await sql`
-    select u.id, u.team_id, u.username, u.email, u.display_name, u.avatar_url, u.role, u.password_hash, u.status, u.language, t.name as team_name, t.slug as team_slug
+    select u.id, u.team_id, u.username, u.email, u.display_name, u.avatar_url, u.role, u.password_hash, u.status, u.language, u.two_fa_method, u.two_fa_setup_required, t.name as team_name, t.slug as team_slug
     from users u
     join teams t on u.team_id = t.id
     where u.username = ${username}

@@ -64,11 +64,18 @@ function Login() {
       })
       
       if (result.success) {
-        // If biometric is required, redirect to biometric verification page
-        if (result.requireBiometric) {
+        // Check what type of verification/setup is required
+        if (result.require2FASetup) {
+          // First time user - show 2FA setup prompt (will appear on /starteam)
+          navigate('/starteam')
+        } else if (result.requireBiometric) {
+          // User has biometric enabled - verify with Touch ID
           navigate('/biometric-verify')
+        } else if (result.requirePIN) {
+          // User has PIN enabled - verify with PIN
+          navigate('/pin-verify')
         } else {
-          // Otherwise go directly to the app
+          // No 2FA or already verified - go to app
           navigate('/starteam')
         }
       } else {

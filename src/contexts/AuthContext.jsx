@@ -188,28 +188,29 @@ export function AuthProvider({ children }) {
       
       setUser(userData)
 
-      // Check if biometric is available - if so, require biometric verification
-      if (biometricAvailable) {
-        // Register biometric credential if not already registered
-        const biometricEnabled = localStorage.getItem('biometric_enabled')
-        if (!biometricEnabled) {
-          try {
-            await registerBiometricAuth(userData.id, userData.username)
-            console.log('Biometric credential registered successfully')
-          } catch (bioError) {
-            console.error('Failed to register biometric:', bioError)
-            // Continue even if registration fails - user can try again
-          }
-        }
-        
-        // Set pending verification flag to require biometric check
+      // Check if user needs to set up 2FA (first time setup)
+      if (userData.two_fa_setup_required) {
+        // User needs to set up 2FA - they'll see the setup prompt
+        localStorage.setItem('pending2FASetup', 'true')
+        return { success: true, user: userData, requireBiometric: false, require2FASetup: true }
+      }
+
+      // Check user's 2FA method preference (if they already have 2FA set up)
+      if (userData.two_fa_method === 'biometric') {
+        // User has biometric enabled - redirect to biometric verification
         localStorage.setItem('pendingBiometricVerification', 'true')
         localStorage.removeItem('biometricVerified')
-        
+        localStorage.setItem('two_fa_method', 'biometric')
         return { success: true, user: userData, requireBiometric: true }
+      } else if (userData.two_fa_method === 'pin') {
+        // User has PIN enabled - redirect to PIN verification
+        localStorage.setItem('pendingPINVerification', 'true')
+        localStorage.removeItem('pin_verified')
+        localStorage.setItem('two_fa_method', 'pin')
+        return { success: true, user: userData, requirePIN: true }
       }
       
-      // If biometric not available, proceed normally
+      // No 2FA set up yet (shouldn't happen, but handle gracefully)
       return { success: true, user: userData, requireBiometric: false }
     } catch (error) {
       return { success: false, error: error.message }
