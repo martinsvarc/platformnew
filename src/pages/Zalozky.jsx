@@ -18,6 +18,7 @@ import { useToast } from '../contexts/ToastContext'
 
 // Compact bookmark table card component
 function BookmarkTableCard({ table, onEdit, onDelete, onAddBookmark }) {
+  const { t } = useTranslation()
   const { confirm } = useConfirm()
   const { toast } = useToast()
   const [bookmarks, setBookmarks] = useState([])
