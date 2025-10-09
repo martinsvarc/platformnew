@@ -1,5 +1,34 @@
 import { sql } from './db'
 
+// Webhook URL for n8n automation
+const WEBHOOK_URL = 'https://n8n.automatedsolarbiz.com/webhook/d804aab4-f396-4abb-86b1-3b0945448f6c'
+
+/**
+ * Send payment data to webhook
+ */
+async function sendPaymentWebhook(paymentData) {
+  try {
+    console.log('Sending payment webhook notification...', paymentData)
+    
+    const response = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(paymentData)
+    })
+    
+    if (!response.ok) {
+      console.error('Webhook notification failed:', response.status, response.statusText)
+    } else {
+      console.log('Webhook notification sent successfully')
+    }
+  } catch (error) {
+    // Don't throw error - webhook failure shouldn't break payment creation
+    console.error('Error sending webhook notification:', error)
+  }
+}
+
 async function resolveOrCreateClient(sql, teamId, client) {
   console.log('resolveOrCreateClient called with:', { teamId, client })
   
@@ -142,6 +171,56 @@ export async function createPayment({
     
     console.log('=== PAYMENT CREATION SUCCESS ===')
     const res = inserted[0]
+    
+    // Fetch complete payment data with user and client details for webhook
+    try {
+      const completePaymentData = await sql`
+        select 
+          p.id,
+          p.amount,
+          p.fee_amount,
+          (p.amount - p.fee_amount) as net_amount,
+          p.paid_at,
+          p.currency,
+          p.prodano,
+          p.platforma,
+          p.model,
+          p.banka,
+          p.status,
+          p.method,
+          p.reference,
+          p.notes,
+          p.message,
+          p.created_at,
+          u.id as user_id,
+          u.username as user_username,
+          u.display_name as user_display_name,
+          u.email as user_email,
+          u.role as user_role,
+          c.id as client_id,
+          c.name as client_name,
+          c.email as client_email,
+          c.phone as client_phone,
+          c.vyplata as client_vyplata,
+          c.notes as client_notes,
+          t.id as team_id,
+          t.name as team_name,
+          t.slug as team_slug
+        from payments p
+        left join users u on p.user_id = u.id
+        left join clients c on p.client_id = c.id
+        left join teams t on p.team_id = t.id
+        where p.id = ${res.id}
+      `
+      
+      if (completePaymentData.length > 0) {
+        // Send webhook notification with all payment details
+        sendPaymentWebhook(completePaymentData[0])
+      }
+    } catch (webhookError) {
+      console.error('Error fetching complete payment data for webhook:', webhookError)
+    }
+    
     return res
   } catch (error) {
     console.error('=== PAYMENT CREATION ERROR ===')
