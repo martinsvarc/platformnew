@@ -288,3 +288,100 @@ export async function getChatterAnalytics(teamId, { from = null, to = null } = {
   }
 }
 
+// Get client retention by days active (how many clients send across multiple days)
+export async function getClientDayRetention(teamId, { from = null, to = null } = {}) {
+  try {
+    const rows = await sql`
+      with client_active_days as (
+        select 
+          p.client_id,
+          count(distinct p.paid_date) as days_active
+        from payments p
+        where p.team_id = ${teamId}
+          and p.client_id is not null
+          and p.paid_date is not null
+          ${from ? sql`and p.paid_date >= ${from}` : sql``}
+          ${to ? sql`and p.paid_date <= ${to}` : sql``}
+        group by p.client_id
+      ),
+      day_distribution as (
+        select 
+          days_active,
+          count(*) as client_count
+        from client_active_days
+        group by days_active
+        order by days_active asc
+      ),
+      total_clients as (
+        select count(*) as total from client_active_days
+      )
+      select 
+        dd.days_active,
+        dd.client_count,
+        tc.total as total_clients,
+        (dd.client_count::float / nullif(tc.total, 0) * 100)::float as percentage
+      from day_distribution dd
+      cross join total_clients tc
+      order by dd.days_active asc
+    `
+    
+    return rows.map(row => ({
+      daysActive: Number(row.days_active),
+      clientCount: Number(row.client_count),
+      totalClients: Number(row.total_clients),
+      percentage: Number(row.percentage) || 0
+    }))
+  } catch (error) {
+    console.error('Error in getClientDayRetention:', error)
+    throw error
+  }
+}
+
+// Get payment sequence retention (how many clients reach 2nd, 3rd, 4th payment)
+export async function getPaymentSequenceRetention(teamId, { from = null, to = null } = {}) {
+  try {
+    const rows = await sql`
+      with client_payment_counts as (
+        select 
+          p.client_id,
+          count(*) as total_payments
+        from payments p
+        where p.team_id = ${teamId}
+          and p.client_id is not null
+          ${from ? sql`and p.paid_date >= ${from}` : sql``}
+          ${to ? sql`and p.paid_date <= ${to}` : sql``}
+        group by p.client_id
+      ),
+      max_sequence as (
+        select coalesce(max(total_payments), 0) as max_val from client_payment_counts
+      ),
+      sequences as (
+        select generate_series(1, least((select max_val from max_sequence), 20)) as sequence
+      ),
+      total_clients as (
+        select count(*) as total from client_payment_counts
+      )
+      select 
+        s.sequence,
+        count(cpc.client_id) as clients_reached,
+        tc.total as total_clients,
+        (count(cpc.client_id)::float / nullif(tc.total, 0) * 100)::float as percentage
+      from sequences s
+      cross join total_clients tc
+      left join client_payment_counts cpc on cpc.total_payments >= s.sequence
+      group by s.sequence, tc.total
+      order by s.sequence asc
+    `
+    
+    return rows.map(row => ({
+      sequence: Number(row.sequence),
+      clientsReached: Number(row.clients_reached),
+      totalClients: Number(row.total_clients),
+      percentage: Number(row.percentage) || 0
+    }))
+  } catch (error) {
+    console.error('Error in getPaymentSequenceRetention:', error)
+    throw error
+  }
+}
+

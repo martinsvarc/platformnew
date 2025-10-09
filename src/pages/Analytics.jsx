@@ -1,12 +1,15 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import AIAssistantBar from '../components/AIAssistantBar'
 import { 
   getClientAnalytics, 
   getClientLifespan, 
   getClientValueDistribution,
   getSequentialPaymentAverages,
   getDayOfWeekHeatmap,
-  getChatterAnalytics
+  getChatterAnalytics,
+  getClientDayRetention,
+  getPaymentSequenceRetention
 } from '../api/analytics'
 
 function Analytics() {
@@ -15,6 +18,7 @@ function Analytics() {
 
   // View state
   const [activeView, setActiveView] = useState('clients') // 'clients' or 'chatters'
+  const [retentionView, setRetentionView] = useState('days') // 'days' or 'payments'
 
   // Date filter state
   const [from, setFrom] = useState('')
@@ -28,6 +32,8 @@ function Analytics() {
   const [sequentialPayments, setSequentialPayments] = useState([])
   const [dayOfWeekHeatmap, setDayOfWeekHeatmap] = useState([])
   const [chatterAnalytics, setChatterAnalytics] = useState([])
+  const [clientDayRetention, setClientDayRetention] = useState([])
+  const [paymentSequenceRetention, setPaymentSequenceRetention] = useState([])
 
   // Format currency
   const formatCurrency = (amount) => new Intl.NumberFormat('cs-CZ', { 
@@ -57,12 +63,14 @@ function Analytics() {
 
       if (activeView === 'clients') {
         // Load client & payment data
-        const [analytics, lifespan, distribution, sequential, heatmap] = await Promise.all([
+        const [analytics, lifespan, distribution, sequential, heatmap, dayRetention, sequenceRetention] = await Promise.all([
           getClientAnalytics(teamId, filters),
           getClientLifespan(teamId, filters),
           getClientValueDistribution(teamId, filters),
           getSequentialPaymentAverages(teamId, filters),
-          getDayOfWeekHeatmap(teamId, filters)
+          getDayOfWeekHeatmap(teamId, filters),
+          getClientDayRetention(teamId, filters),
+          getPaymentSequenceRetention(teamId, filters)
         ])
 
         setClientAnalytics(analytics)
@@ -70,6 +78,8 @@ function Analytics() {
         setClientValueDistribution(distribution)
         setSequentialPayments(sequential)
         setDayOfWeekHeatmap(heatmap)
+        setClientDayRetention(dayRetention)
+        setPaymentSequenceRetention(sequenceRetention)
       } else {
         // Load chatter data
         const chatters = await getChatterAnalytics(teamId, filters)
@@ -422,6 +432,116 @@ function Analytics() {
                 </p>
               )}
             </div>
+
+            {/* Client Retention Chart */}
+            <div className="unified-glass p-4 mt-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gradient-gold">
+                    Retence klientů
+                  </h2>
+                  <p className="text-sm text-pearl/70 mt-1">
+                    {retentionView === 'days' 
+                      ? 'Kolik klientů posílá napříč více dny' 
+                      : 'Kolik klientů se dostane k další platbě'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setRetentionView('days')}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                      retentionView === 'days'
+                        ? 'bg-gradient-to-r from-neon-orchid to-crimson text-white shadow-glow-purple'
+                        : 'bg-velvet-gray/40 text-pearl/70 hover:text-pearl'
+                    }`}
+                  >
+                    Aktivní dny
+                  </button>
+                  <button
+                    onClick={() => setRetentionView('payments')}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                      retentionView === 'payments'
+                        ? 'bg-gradient-to-r from-neon-orchid to-crimson text-white shadow-glow-purple'
+                        : 'bg-velvet-gray/40 text-pearl/70 hover:text-pearl'
+                    }`}
+                  >
+                    Sekvence plateb
+                  </button>
+                </div>
+              </div>
+
+              {retentionView === 'days' ? (
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {clientDayRetention.map((item) => (
+                    <div key={item.daysActive} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-pearl">
+                            {item.daysActive} {item.daysActive === 1 ? 'den' : item.daysActive <= 4 ? 'dny' : 'dní'}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-pearl/70">
+                              {item.clientCount} klientů
+                            </span>
+                            <span className="text-sm font-semibold text-pearl ml-2 whitespace-nowrap">
+                              {formatNumber(item.percentage, 1)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-velvet-gray/40 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all"
+                            style={{
+                              width: `${item.percentage}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {clientDayRetention.length === 0 && (
+                    <p className="text-center text-pearl/50 py-8">
+                      Žádná data k zobrazení
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {paymentSequenceRetention.map((item) => (
+                    <div key={item.sequence} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-pearl">
+                            {item.sequence}. platba
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-pearl/70">
+                              {item.clientsReached} klientů
+                            </span>
+                            <span className="text-sm font-semibold text-pearl ml-2 whitespace-nowrap">
+                              {formatNumber(item.percentage, 1)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-velvet-gray/40 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-violet-500 to-purple-500 h-2 rounded-full transition-all"
+                            style={{
+                              width: `${item.percentage}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {paymentSequenceRetention.length === 0 && (
+                    <p className="text-center text-pearl/50 py-8">
+                      Žádná data k zobrazení
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -491,6 +611,9 @@ function Analytics() {
           </>
         )}
       </div>
+
+      {/* AI Assistant Bar */}
+      <AIAssistantBar />
     </div>
   )
 }
