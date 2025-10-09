@@ -1,120 +1,12 @@
-import { createCanvas, loadImage } from 'canvas';
+import { ImageResponse } from '@vercel/og';
 
-// Platform colors
-const COLORS = {
-  neonOrchid: 'rgb(218, 112, 214)',
-  neonOrchidRgba: 'rgba(218, 112, 214, 0.5)',
-  neonOrchidLight: 'rgba(218, 112, 214, 0.3)',
-  sunsetGold: 'rgb(255, 215, 0)',
-  sunsetGoldRgba: 'rgba(255, 215, 0, 0.6)',
-  obsidian: 'rgb(18, 18, 18)',
-  charcoal: 'rgb(30, 30, 32)',
-  pearl: 'rgb(248, 248, 255)',
-  crimson: 'rgb(220, 38, 127)',
-  smoke: 'rgb(60, 60, 63)',
+export const config = {
+  runtime: 'edge',
 };
 
-// Helper function to draw rounded rectangle with glow
-function drawRoundedRect(ctx, x, y, width, height, radius, fillColor, strokeColor, glowColor) {
-  ctx.save();
-  
-  // Add glow effect
-  if (glowColor) {
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = 30;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-  }
-  
-  // Draw rounded rectangle
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  
-  // Fill
-  if (fillColor) {
-    ctx.fillStyle = fillColor;
-    ctx.fill();
-  }
-  
-  // Stroke
-  if (strokeColor) {
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-  }
-  
-  ctx.restore();
-}
-
-// Helper function to draw gradient text
-function drawGradientText(ctx, text, x, y, size, bold = false) {
-  ctx.save();
-  ctx.font = `${bold ? 'bold ' : ''}${size}px Arial, sans-serif`;
-  
-  const gradient = ctx.createLinearGradient(x, y - size, x + ctx.measureText(text).width, y);
-  gradient.addColorStop(0, COLORS.neonOrchid);
-  gradient.addColorStop(1, COLORS.sunsetGold);
-  
-  ctx.fillStyle = gradient;
-  ctx.fillText(text, x, y);
-  
-  // Add glow
-  ctx.shadowColor = COLORS.neonOrchidRgba;
-  ctx.shadowBlur = 15;
-  ctx.fillText(text, x, y);
-  
-  ctx.restore();
-}
-
-// Helper function to wrap text
-function wrapText(ctx, text, maxWidth) {
-  const words = text.split(' ');
-  const lines = [];
-  let currentLine = words[0];
-
-  for (let i = 1; i < words.length; i++) {
-    const word = words[i];
-    const width = ctx.measureText(currentLine + " " + word).width;
-    if (width < maxWidth) {
-      currentLine += " " + word;
-    } else {
-      lines.push(currentLine);
-      currentLine = word;
-    }
-  }
-  lines.push(currentLine);
-  return lines;
-}
-
-export default async function handler(req, res) {
-  // CORS headers for n8n
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  // Handle OPTIONS request for CORS
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export default async function handler(req) {
   try {
-    const data = req.body;
+    const data = await req.json();
     
     // Validate required fields
     const {
@@ -124,332 +16,323 @@ export default async function handler(req, res) {
       paymentAmount,
       currency = 'CZK',
       clientName,
-      clientStatus, // 'old' or 'new'
-      productDescription, // Co se prodalo
+      clientStatus,
+      productDescription,
       clientSentTotal,
-      clientDay, // 1st day, 2nd session, etc.
+      clientDay,
       customMessage = ''
     } = data;
 
     if (!chatterName || !paymentAmount || !clientName) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: chatterName, paymentAmount, clientName' 
-      });
-    }
-
-    // Canvas dimensions
-    const width = 1200;
-    const height = 1400;
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-
-    // Background with gradient
-    const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-    bgGradient.addColorStop(0, COLORS.obsidian);
-    bgGradient.addColorStop(0.5, COLORS.charcoal);
-    bgGradient.addColorStop(1, COLORS.obsidian);
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // Add subtle pattern/noise overlay
-    for (let i = 0; i < 100; i++) {
-      ctx.fillStyle = `rgba(218, 112, 214, ${Math.random() * 0.02})`;
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      ctx.fillRect(x, y, 2, 2);
-    }
-
-    // Main card container
-    const cardPadding = 40;
-    const cardX = cardPadding;
-    const cardY = cardPadding;
-    const cardWidth = width - (cardPadding * 2);
-    const cardHeight = height - (cardPadding * 2);
-
-    // Draw main card with frosted glass effect
-    drawRoundedRect(
-      ctx,
-      cardX,
-      cardY,
-      cardWidth,
-      cardHeight,
-      24,
-      'rgba(30, 30, 32, 0.85)',
-      COLORS.neonOrchidRgba,
-      COLORS.neonOrchidLight
-    );
-
-    // Header section
-    let currentY = cardY + 60;
-
-    // Title
-    ctx.font = 'bold 56px Arial, sans-serif';
-    ctx.fillStyle = COLORS.pearl;
-    ctx.textAlign = 'center';
-    ctx.fillText('💰 NEW PAYMENT', width / 2, currentY);
-    
-    currentY += 40;
-    
-    // Draw decorative line
-    ctx.strokeStyle = COLORS.neonOrchidRgba;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cardX + 100, currentY);
-    ctx.lineTo(width - cardX - 100, currentY);
-    ctx.stroke();
-
-    currentY += 60;
-
-    // Chatter section
-    ctx.textAlign = 'left';
-    const leftMargin = cardX + 60;
-    const contentWidth = cardWidth - 120;
-
-    // Load and draw profile picture if provided
-    if (chatterProfilePicture) {
-      try {
-        const profileImg = await loadImage(chatterProfilePicture);
-        const imgSize = 120;
-        const imgX = leftMargin;
-        const imgY = currentY;
-        
-        // Draw circular profile with glow
-        ctx.save();
-        ctx.shadowColor = COLORS.neonOrchidRgba;
-        ctx.shadowBlur = 20;
-        ctx.beginPath();
-        ctx.arc(imgX + imgSize/2, imgY + imgSize/2, imgSize/2, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(profileImg, imgX, imgY, imgSize, imgSize);
-        ctx.restore();
-        
-        // Border around profile
-        ctx.strokeStyle = COLORS.neonOrchid;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(imgX + imgSize/2, imgY + imgSize/2, imgSize/2, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Chatter info next to profile
-        const textX = imgX + imgSize + 40;
-        ctx.font = 'bold 42px Arial, sans-serif';
-        ctx.fillStyle = COLORS.pearl;
-        ctx.fillText(chatterName, textX, imgY + 40);
-        
-        if (chatterMadeTotal) {
-          ctx.font = '32px Arial, sans-serif';
-          ctx.fillStyle = COLORS.sunsetGold;
-          ctx.fillText(`Total Made: ${chatterMadeTotal} ${currency}`, textX, imgY + 85);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields: chatterName, paymentAmount, clientName' 
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
         }
-        
-        currentY += imgSize + 50;
-      } catch (error) {
-        console.error('Error loading profile picture:', error);
-        // Continue without profile picture
-      }
-    }
-    
-    // If no profile picture or failed to load
-    if (!chatterProfilePicture || currentY === cardY + 60 + 40 + 60) {
-      ctx.font = 'bold 42px Arial, sans-serif';
-      ctx.fillStyle = COLORS.pearl;
-      ctx.fillText(`👤 ${chatterName}`, leftMargin, currentY);
-      
-      currentY += 50;
-      
-      if (chatterMadeTotal) {
-        ctx.font = '32px Arial, sans-serif';
-        ctx.fillStyle = COLORS.sunsetGold;
-        ctx.fillText(`Total Made: ${chatterMadeTotal} ${currency}`, leftMargin, currentY);
-      }
-      
-      currentY += 60;
+      );
     }
 
-    // Payment amount section (highlighted)
-    const paymentBoxY = currentY;
-    const paymentBoxHeight = 140;
-    drawRoundedRect(
-      ctx,
-      leftMargin - 20,
-      paymentBoxY,
-      contentWidth + 40,
-      paymentBoxHeight,
-      16,
-      'rgba(218, 112, 214, 0.15)',
-      COLORS.neonOrchid,
-      COLORS.neonOrchidRgba
+    const statusEmoji = clientStatus?.toLowerCase() === 'new' ? '🆕' : '🔄';
+    const statusText = clientStatus?.toLowerCase() === 'new' ? 'NEW CLIENT' : 'RETURNING CLIENT';
+    const statusColor = clientStatus?.toLowerCase() === 'new' ? '#FFD700' : '#DA70D6';
+
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: '1200px',
+            height: '1400px',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'linear-gradient(135deg, #121212 0%, #1e1e20 50%, #121212 100%)',
+            position: 'relative',
+          }}
+        >
+          {/* Main Card */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              margin: '40px',
+              padding: '60px',
+              background: 'rgba(30, 30, 32, 0.85)',
+              borderRadius: '24px',
+              border: '3px solid rgba(218, 112, 214, 0.5)',
+              boxShadow: '0 20px 60px rgba(218, 112, 214, 0.3)',
+              flex: 1,
+            }}
+          >
+            {/* Title */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                marginBottom: '40px',
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: '56px',
+                  fontWeight: 'bold',
+                  color: '#F8F8FF',
+                  margin: 0,
+                  marginBottom: '20px',
+                }}
+              >
+                💰 NEW PAYMENT
+              </h1>
+              <div
+                style={{
+                  width: '800px',
+                  height: '2px',
+                  background: 'rgba(218, 112, 214, 0.5)',
+                }}
+              />
+            </div>
+
+            {/* Chatter Info */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '40px',
+              }}
+            >
+              {chatterProfilePicture && (
+                <img
+                  src={chatterProfilePicture}
+                  width={120}
+                  height={120}
+                  style={{
+                    borderRadius: '50%',
+                    border: '4px solid #DA70D6',
+                    marginRight: '40px',
+                  }}
+                />
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div
+                  style={{
+                    fontSize: '42px',
+                    fontWeight: 'bold',
+                    color: '#F8F8FF',
+                    marginBottom: '10px',
+                  }}
+                >
+                  {chatterProfilePicture ? chatterName : `👤 ${chatterName}`}
+                </div>
+                {chatterMadeTotal && (
+                  <div
+                    style={{
+                      fontSize: '32px',
+                      color: '#FFD700',
+                    }}
+                  >
+                    Total Made: {chatterMadeTotal} {currency}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Payment Amount Box */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px',
+                marginBottom: '40px',
+                background: 'rgba(218, 112, 214, 0.15)',
+                border: '3px solid #DA70D6',
+                borderRadius: '16px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '70px',
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(135deg, #DA70D6 0%, #FFD700 100%)',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                {paymentAmount} {currency}
+              </div>
+            </div>
+
+            {/* Client Info */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                marginBottom: '30px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '38px',
+                  fontWeight: 'bold',
+                  color: '#F8F8FF',
+                  marginBottom: '15px',
+                }}
+              >
+                {statusEmoji} {clientName}
+              </div>
+              <div
+                style={{
+                  fontSize: '28px',
+                  color: statusColor,
+                }}
+              >
+                {statusText}
+              </div>
+            </div>
+
+            {/* Info Boxes */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+              }}
+            >
+              {clientSentTotal && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '20px 30px',
+                    background: 'rgba(60, 60, 63, 0.4)',
+                    border: '1px solid rgba(218, 112, 214, 0.2)',
+                    borderRadius: '12px',
+                  }}
+                >
+                  <div style={{ fontSize: '26px', color: '#3C3C3F', marginBottom: '8px' }}>
+                    💳 Client Sent Total
+                  </div>
+                  <div style={{ fontSize: '30px', fontWeight: 'bold', color: '#F8F8FF' }}>
+                    {clientSentTotal} {currency}
+                  </div>
+                </div>
+              )}
+
+              {clientDay && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '20px 30px',
+                    background: 'rgba(60, 60, 63, 0.4)',
+                    border: '1px solid rgba(218, 112, 214, 0.2)',
+                    borderRadius: '12px',
+                  }}
+                >
+                  <div style={{ fontSize: '26px', color: '#3C3C3F', marginBottom: '8px' }}>
+                    📅 Client Session
+                  </div>
+                  <div style={{ fontSize: '30px', fontWeight: 'bold', color: '#FFD700' }}>
+                    {clientDay}
+                  </div>
+                </div>
+              )}
+
+              {productDescription && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '20px 30px',
+                    background: 'rgba(60, 60, 63, 0.4)',
+                    border: '1px solid rgba(218, 112, 214, 0.2)',
+                    borderRadius: '12px',
+                  }}
+                >
+                  <div style={{ fontSize: '26px', color: '#3C3C3F', marginBottom: '8px' }}>
+                    🛍️ Product
+                  </div>
+                  <div style={{ fontSize: '30px', fontWeight: 'bold', color: '#F8F8FF' }}>
+                    {productDescription}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Custom Message */}
+            {customMessage && customMessage.trim() && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '20px 30px',
+                  marginTop: '30px',
+                  background: 'rgba(255, 215, 0, 0.1)',
+                  border: '2px solid rgba(255, 215, 0, 0.6)',
+                  borderRadius: '12px',
+                }}
+              >
+                <div style={{ fontSize: '24px', fontStyle: 'italic', color: '#3C3C3F', marginBottom: '10px' }}>
+                  💬 Message
+                </div>
+                <div style={{ fontSize: '28px', color: '#F8F8FF', lineHeight: 1.4 }}>
+                  {customMessage.slice(0, 150)}
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginTop: 'auto',
+                paddingTop: '40px',
+              }}
+            >
+              <div style={{ fontSize: '24px', color: '#3C3C3F' }}>
+                Generated: {new Date().toLocaleString('cs-CZ', { 
+                  dateStyle: 'medium', 
+                  timeStyle: 'short' 
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Corner Accents */}
+          <div style={{ position: 'absolute', top: '60px', left: '60px', display: 'flex' }}>
+            <div style={{ width: '40px', height: '4px', background: '#FFD700' }} />
+            <div style={{ position: 'absolute', width: '4px', height: '40px', background: '#FFD700' }} />
+          </div>
+          <div style={{ position: 'absolute', top: '60px', right: '60px', display: 'flex' }}>
+            <div style={{ position: 'absolute', right: 0, width: '40px', height: '4px', background: '#FFD700' }} />
+            <div style={{ position: 'absolute', right: 0, width: '4px', height: '40px', background: '#FFD700' }} />
+          </div>
+          <div style={{ position: 'absolute', bottom: '60px', left: '60px', display: 'flex' }}>
+            <div style={{ position: 'absolute', bottom: 0, width: '40px', height: '4px', background: '#FFD700' }} />
+            <div style={{ position: 'absolute', bottom: 0, width: '4px', height: '40px', background: '#FFD700' }} />
+          </div>
+          <div style={{ position: 'absolute', bottom: '60px', right: '60px', display: 'flex' }}>
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: '40px', height: '4px', background: '#FFD700' }} />
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: '4px', height: '40px', background: '#FFD700' }} />
+          </div>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 1400,
+      }
     );
-
-    ctx.font = 'bold 70px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    drawGradientText(ctx, `${paymentAmount} ${currency}`, width / 2, paymentBoxY + 90, 70, true);
-    
-    currentY += paymentBoxHeight + 50;
-
-    // Client information section
-    ctx.textAlign = 'left';
-    
-    // Client name and status
-    ctx.font = 'bold 38px Arial, sans-serif';
-    ctx.fillStyle = COLORS.pearl;
-    const clientStatusEmoji = clientStatus?.toLowerCase() === 'new' ? '🆕' : '🔄';
-    const clientStatusText = clientStatus?.toLowerCase() === 'new' ? 'NEW CLIENT' : 'RETURNING CLIENT';
-    ctx.fillText(`${clientStatusEmoji} ${clientName}`, leftMargin, currentY);
-    
-    currentY += 48;
-    
-    ctx.font = '28px Arial, sans-serif';
-    ctx.fillStyle = clientStatus?.toLowerCase() === 'new' ? COLORS.sunsetGold : COLORS.neonOrchid;
-    ctx.fillText(clientStatusText, leftMargin, currentY);
-    
-    currentY += 60;
-
-    // Info grid
-    const infoItems = [];
-    
-    if (clientSentTotal) {
-      infoItems.push({ 
-        label: '💳 Client Sent Total', 
-        value: `${clientSentTotal} ${currency}`, 
-        color: COLORS.pearl 
-      });
-    }
-    
-    if (clientDay) {
-      infoItems.push({ 
-        label: '📅 Client Session', 
-        value: clientDay, 
-        color: COLORS.sunsetGold 
-      });
-    }
-    
-    if (productDescription) {
-      infoItems.push({ 
-        label: '🛍️ Product', 
-        value: productDescription, 
-        color: COLORS.pearl 
-      });
-    }
-
-    infoItems.forEach(item => {
-      // Draw info box
-      drawRoundedRect(
-        ctx,
-        leftMargin - 15,
-        currentY - 40,
-        contentWidth + 30,
-        80,
-        12,
-        'rgba(60, 60, 63, 0.4)',
-        'rgba(218, 112, 214, 0.2)',
-        null
-      );
-
-      ctx.font = '26px Arial, sans-serif';
-      ctx.fillStyle = COLORS.smoke;
-      ctx.fillText(item.label, leftMargin, currentY);
-      
-      ctx.font = 'bold 30px Arial, sans-serif';
-      ctx.fillStyle = item.color;
-      ctx.fillText(item.value, leftMargin, currentY + 35);
-      
-      currentY += 100;
-    });
-
-    // Custom message section
-    if (customMessage && customMessage.trim()) {
-      currentY += 20;
-      
-      // Message box
-      const messageBoxHeight = 150;
-      drawRoundedRect(
-        ctx,
-        leftMargin - 15,
-        currentY - 20,
-        contentWidth + 30,
-        messageBoxHeight,
-        12,
-        'rgba(255, 215, 0, 0.1)',
-        COLORS.sunsetGoldRgba,
-        null
-      );
-
-      ctx.font = 'italic 24px Arial, sans-serif';
-      ctx.fillStyle = COLORS.smoke;
-      ctx.fillText('💬 Message', leftMargin, currentY + 15);
-      
-      ctx.font = '28px Arial, sans-serif';
-      ctx.fillStyle = COLORS.pearl;
-      
-      // Word wrap the message
-      const lines = wrapText(ctx, customMessage, contentWidth - 20);
-      lines.forEach((line, index) => {
-        if (index < 3) { // Limit to 3 lines
-          ctx.fillText(line, leftMargin, currentY + 60 + (index * 35));
-        }
-      });
-      
-      currentY += messageBoxHeight + 20;
-    }
-
-    // Footer
-    currentY = cardY + cardHeight - 80;
-    ctx.font = '24px Arial, sans-serif';
-    ctx.fillStyle = COLORS.smoke;
-    ctx.textAlign = 'center';
-    const timestamp = new Date().toLocaleString('cs-CZ', { 
-      dateStyle: 'medium', 
-      timeStyle: 'short' 
-    });
-    ctx.fillText(`Generated: ${timestamp}`, width / 2, currentY);
-
-    // Add decorative corner accents
-    const accentSize = 40;
-    ctx.strokeStyle = COLORS.sunsetGold;
-    ctx.lineWidth = 4;
-    
-    // Top-left corner
-    ctx.beginPath();
-    ctx.moveTo(cardX + 20, cardY + accentSize + 20);
-    ctx.lineTo(cardX + 20, cardY + 20);
-    ctx.lineTo(cardX + accentSize + 20, cardY + 20);
-    ctx.stroke();
-    
-    // Top-right corner
-    ctx.beginPath();
-    ctx.moveTo(cardX + cardWidth - 20, cardY + accentSize + 20);
-    ctx.lineTo(cardX + cardWidth - 20, cardY + 20);
-    ctx.lineTo(cardX + cardWidth - accentSize - 20, cardY + 20);
-    ctx.stroke();
-    
-    // Bottom-left corner
-    ctx.beginPath();
-    ctx.moveTo(cardX + 20, cardY + cardHeight - accentSize - 20);
-    ctx.lineTo(cardX + 20, cardY + cardHeight - 20);
-    ctx.lineTo(cardX + accentSize + 20, cardY + cardHeight - 20);
-    ctx.stroke();
-    
-    // Bottom-right corner
-    ctx.beginPath();
-    ctx.moveTo(cardX + cardWidth - 20, cardY + cardHeight - accentSize - 20);
-    ctx.lineTo(cardX + cardWidth - 20, cardY + cardHeight - 20);
-    ctx.lineTo(cardX + cardWidth - accentSize - 20, cardY + cardHeight - 20);
-    ctx.stroke();
-
-    // Convert canvas to buffer
-    const buffer = canvas.toBuffer('image/png');
-
-    // Return the image
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Length', buffer.length);
-    res.setHeader('Cache-Control', 'no-cache');
-    res.status(200).send(buffer);
-
   } catch (error) {
     console.error('Error generating payment image:', error);
-    res.status(500).json({ error: error.message });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
-
