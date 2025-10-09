@@ -52,10 +52,12 @@ function TvujVykon() {
     return () => clearTimeout(timeoutId)
   }, [getNextMidnightPrague, forceRefresh])
 
-  // Create chatters list with "All" option and team users
+  // Create chatters list with "All" option and team users (exclude admins)
   const chatters = useMemo(() => {
     const allOption = { id: 'all', name: t('common.all'), display_name: t('common.all') }
-    return [allOption, ...teamUsers]
+    // Filter out admins - only show chatters
+    const chattersOnly = teamUsers.filter(user => user.role !== 'admin')
+    return [allOption, ...chattersOnly]
   }, [teamUsers, t])
 
   // Load team users and debug payments
