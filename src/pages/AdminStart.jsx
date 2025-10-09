@@ -260,7 +260,7 @@ function AdminStart() {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-pearl/50 text-xs">
-            © 2024 Platform. Všechna práva vyhrazena.
+            © 2025 Fuck the Matrix
           </p>
         </div>
       </div>

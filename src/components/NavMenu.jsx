@@ -286,7 +286,7 @@ function NavMenu() {
       {/* Footer */}
       <div className="p-4 border-t border-neon-orchid/20">
         <div className="text-center text-pearl/50 text-xs">
-          <p>© 2024 Platform</p>
+          <p>© 2025 Fuck the Matrix</p>
         </div>
       </div>
     </div>
