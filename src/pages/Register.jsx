@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signup } from '../api/signup'
-import { getBackgroundUrl } from '../api/settings'
+import { signup } from '../api/signupClient'
+import { getBackgroundUrl } from '../api/settingsClient'
 import { TEAM_ID } from '../api/config'
 
 function Register() {

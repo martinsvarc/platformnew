@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getBackgroundUrl, updateBackgroundUrl, removeBackgroundUrl } from '../api/settings'
+import { getBackgroundUrl, updateBackgroundUrl, removeBackgroundUrl } from '../api/settingsClient'
 import { TEAM_ID } from '../api/config'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'

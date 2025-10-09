@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { authenticateWithBiometric, isBiometricAvailable, isBiometricEnabled } from '../utils/biometric'
-import { getBackgroundUrl } from '../api/settings'
+import { getBackgroundUrl } from '../api/settingsClient'
 import { TEAM_ID } from '../api/config'
 
 function BiometricVerification() {

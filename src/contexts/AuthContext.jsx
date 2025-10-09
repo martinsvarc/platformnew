@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { login, getCurrentUser, logout as logoutApi, updateUserAvatar as updateAvatarApi, updateUserLanguage as updateLanguageApi } from '../api/auth'
+import { login, getCurrentUser, logout as logoutApi, updateUserAvatar as updateAvatarApi, updateUserLanguage as updateLanguageApi, get2FASettings } from '../api/authClient'
 import { 
   authenticateWithBiometric, 
   isBiometricAvailable, 
@@ -11,7 +11,6 @@ import {
   shouldRequireVerification,
   get2FAMethod
 } from '../utils/biometric'
-import { get2FASettings } from '../api/auth'
 import { useTranslation } from 'react-i18next'
 
 const AuthContext = createContext()

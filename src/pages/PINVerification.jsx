@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { verifyPIN, getStoredPINData } from '../utils/biometric'
-import { get2FASettings } from '../api/auth'
-import { getBackgroundUrl } from '../api/settings'
+import { get2FASettings } from '../api/authClient'
+import { getBackgroundUrl } from '../api/settingsClient'
 import { TEAM_ID } from '../api/config'
 
 function PINVerification() {

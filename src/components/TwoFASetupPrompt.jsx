@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { isBiometricAvailable, registerBiometric } from '../utils/biometric'
-import { setupBiometric } from '../api/auth'
+import { setupBiometric } from '../api/authClient'
 
 function TwoFASetupPrompt({ isOpen, onSetupComplete }) {
   const { user } = useAuth()

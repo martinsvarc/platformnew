@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signupAdmin } from '../api/signup'
+import { signupAdmin } from '../api/signupClient'
 
 function AdminStart() {
   const [formData, setFormData] = useState({

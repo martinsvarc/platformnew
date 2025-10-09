@@ -28,7 +28,8 @@ import Analyze from './pages/Analyze'
 import Analytics from './pages/Analytics'
 import Zalozky from './pages/Zalozky'
 import StarTeam from './pages/StarTeam'
-import { getBackgroundUrl } from './api/settings'
+import PaymentImageTest from './pages/PaymentImageTest'
+import { getBackgroundUrl } from './api/settingsClient'
 import { TEAM_ID } from './api/config'
 
 function AppContent() {
@@ -154,6 +155,11 @@ function AppContent() {
           <Route path="/starteam" element={
             <ProtectedRoute>
               <StarTeam />
+            </ProtectedRoute>
+          } />
+          <Route path="/payment-image-test" element={
+            <ProtectedRoute>
+              <PaymentImageTest />
             </ProtectedRoute>
           } />
         </Routes>
