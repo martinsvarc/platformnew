@@ -13,7 +13,7 @@ function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   
-  const { login } = useAuth()
+  const { login, checkExistingSession } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
 
@@ -21,6 +21,22 @@ function Login() {
   const DEFAULT_BG = 'https://res.cloudinary.com/dmbzcxhjn/image/upload/v1759767010/0a80caad8e77bea777fb41bf5438086e_ubbh2h.jpg'
   const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BG)
   const [backgroundLoaded, setBackgroundLoaded] = useState(false)
+
+  // Check for existing session on mount - skip password if session exists
+  useEffect(() => {
+    const session = checkExistingSession()
+    if (session) {
+      console.log('Found existing session, redirecting to 2FA verification')
+      // User has a recent session - skip password and go straight to 2FA
+      if (session.twoFAMethod === 'biometric') {
+        localStorage.setItem('pendingBiometricVerification', 'true')
+        navigate('/biometric-verify')
+      } else if (session.twoFAMethod === 'pin') {
+        localStorage.setItem('pendingPINVerification', 'true')
+        navigate('/pin-verify')
+      }
+    }
+  }, [checkExistingSession, navigate])
 
   // Load background URL from settings
   useEffect(() => {

@@ -129,10 +129,13 @@ export function AuthProvider({ children }) {
         // Check if we need to require verification (past 3 AM Czech time)
         if (shouldRequireVerification()) {
           console.log('3 AM Czech time passed, requiring re-verification')
+          // IMPORTANT: Only clear verification status, NOT session data
+          // This allows user to re-verify without entering password
           localStorage.setItem('pending2FAVerification', 'true')
           localStorage.removeItem('biometric_verified')
           localStorage.removeItem('pin_verified')
           localStorage.removeItem('verificationTime')
+          // Keep: userId, teamId, userData, etc. for session persistence
           
           // Redirect to appropriate verification page
           const twoFAMethod = localStorage.getItem('two_fa_method') || 'biometric'
@@ -214,6 +217,40 @@ export function AuthProvider({ children }) {
       return { success: true, user: userData, requireBiometric: false }
     } catch (error) {
       return { success: false, error: error.message }
+    }
+  }
+
+  const checkExistingSession = () => {
+    // Check if user has a recent session (within 24 hours) that can be resumed with 2FA
+    const userId = localStorage.getItem('userId')
+    const userData = localStorage.getItem('userData')
+    const sessionCreated = localStorage.getItem('sessionCreated')
+    const twoFAMethod = localStorage.getItem('two_fa_method')
+    
+    if (!userId || !userData || !sessionCreated || !twoFAMethod) {
+      return null
+    }
+    
+    // Check if session is within 24 hours
+    const sessionAge = Date.now() - parseInt(sessionCreated)
+    const twentyFourHours = 24 * 60 * 60 * 1000
+    
+    if (sessionAge > twentyFourHours) {
+      // Session too old, require full login
+      return null
+    }
+    
+    try {
+      const user = JSON.parse(userData)
+      return {
+        userId,
+        user,
+        twoFAMethod,
+        sessionAge
+      }
+    } catch (error) {
+      console.error('Error parsing session data:', error)
+      return null
     }
   }
 
@@ -345,6 +382,7 @@ export function AuthProvider({ children }) {
     login: loginUser,
     loginWithBiometric,
     logout: logoutUser,
+    checkExistingSession,
     updateUserAvatar,
     updateUserLanguage,
     registerBiometric,
