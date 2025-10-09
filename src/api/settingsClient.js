@@ -1,7 +1,7 @@
 // Frontend API client for settings
-// This calls the serverless functions (works with both Netlify and Vercel)
+// This calls the serverless functions (Vercel /api endpoints)
 
-const API_BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_USE_NETLIFY === 'true' ? '/.netlify/functions' : '/api')
+const API_BASE = '/api'
 
 async function callSettingsAPI(action, params = {}, method = 'POST') {
   let response

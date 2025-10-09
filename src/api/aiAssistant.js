@@ -1,9 +1,7 @@
 // Call the serverless AI function (works with both Netlify and Vercel)
 export async function askAI(teamId, question) {
   try {
-    const apiUrl = import.meta.env.PROD 
-      ? '/api/ai-ask'  // Vercel in production
-      : '/.netlify/functions/ai-ask'  // Netlify Dev locally
+    const apiUrl = '/api/ai-ask'  // Vercel API endpoint
     
     const response = await fetch(apiUrl, {
       method: 'POST',
