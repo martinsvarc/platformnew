@@ -1,5 +1,8 @@
 {
   "functions": {
+    "api/generate-payment-image.js": {
+      "runtime": "edge"
+    },
     "api/**/*.js": {
       "memory": 1024,
       "maxDuration": 10

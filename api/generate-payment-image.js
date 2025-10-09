@@ -8,20 +8,38 @@ export const config = {
 }
 
 export default async function handler(req) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const data = await req.json()
     
     // Validate required fields
     const {
       chatterName,
-      chatterProfilePicture,
-      chatterMadeTotal,
-      chatterTodayAmount = 0,
-      teamTodayAmount = 0,
       paymentAmount,
       currency = 'CZK',
       clientName,
       clientStatus,
+      chatterMadeTotal,
+      chatterTodayAmount = 0,
+      teamTodayAmount = 0,
       productDescription,
       clientSentTotal,
       clientDay,
@@ -31,7 +49,10 @@ export default async function handler(req) {
     if (!chatterName || !paymentAmount || !clientName) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: chatterName, paymentAmount, clientName' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { 
+          status: 400, 
+          headers: { 'Content-Type': 'application/json' } 
+        }
       )
     }
 
@@ -87,7 +108,7 @@ export default async function handler(req) {
                 marginBottom: '20px',
               }}
             >
-              {chatterProfilePicture ? chatterName : `👤 ${chatterName}`}
+              👤 {chatterName}
             </div>
 
             {/* Chatter Stats */}
@@ -200,6 +221,8 @@ export default async function handler(req) {
                     background: 'rgba(60, 60, 63, 0.6)',
                     border: '2px solid rgba(218, 112, 214, 0.3)',
                     borderRadius: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                 >
                   <div style={{ fontSize: '24px', color: '#DA70D6', marginBottom: '12px' }}>
@@ -218,6 +241,8 @@ export default async function handler(req) {
                     background: 'rgba(60, 60, 63, 0.6)',
                     border: '2px solid rgba(255, 215, 0, 0.3)',
                     borderRadius: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                 >
                   <div style={{ fontSize: '24px', color: '#FFD700', marginBottom: '12px' }}>
@@ -240,6 +265,8 @@ export default async function handler(req) {
                   border: '3px solid rgba(220, 20, 60, 0.5)',
                   borderRadius: '20px',
                   marginBottom: '30px',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
                 <div
@@ -274,6 +301,8 @@ export default async function handler(req) {
                   border: '2px solid rgba(220, 20, 60, 0.3)',
                   borderRadius: '16px',
                   marginBottom: '30px',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
                 <div style={{ fontSize: '24px', color: '#DC143C', marginBottom: '12px' }}>
@@ -293,6 +322,8 @@ export default async function handler(req) {
                   background: 'rgba(255, 215, 0, 0.1)',
                   border: '3px solid rgba(255, 215, 0, 0.4)',
                   borderRadius: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
                 <div style={{ fontSize: '24px', color: '#FFD700', marginBottom: '12px' }}>
@@ -313,9 +344,12 @@ export default async function handler(req) {
     )
   } catch (error) {
     console.error('Error generating payment image:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({ error: error.message }), 
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   }
 }
