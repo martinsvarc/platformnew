@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { verifyPIN, getStoredPINData } from '../utils/biometric'
+import { verifyPIN, getStoredPINData } from '../utils/verification'
 import { get2FASettings } from '../api/authClient'
 import { getBackgroundUrl } from '../api/settingsClient'
 import { TEAM_ID } from '../api/config'

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { hashPIN, storePINLocally } from '../utils/biometric'
+import { hashPIN, storePINLocally } from '../utils/verification'
 import { setupPIN } from '../api/authClient'
 
 function PINSetup({ onComplete }) {
