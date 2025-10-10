@@ -75,3 +75,15 @@ export async function changeUserPassword(userId, teamId, newPassword) {
   return callAuthAPI('changeUserPassword', { userId, teamId, newPassword })
 }
 
+export async function getUserTeams(username) {
+  return callAuthAPI('getUserTeams', { username })
+}
+
+export async function getUserTeamsByEmail(email) {
+  return callAuthAPI('getUserTeamsByEmail', { email })
+}
+
+export async function switchTeam({ username, teamId }) {
+  return callAuthAPI('switchTeam', { username, teamId })
+}
+

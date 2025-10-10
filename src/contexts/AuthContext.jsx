@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { login, getCurrentUser, logout as logoutApi, updateUserAvatar as updateAvatarApi, updateUserLanguage as updateLanguageApi, get2FASettings } from '../api/authClient'
+import { login, getCurrentUser, logout as logoutApi, updateUserAvatar as updateAvatarApi, updateUserLanguage as updateLanguageApi, get2FASettings, getUserTeams, switchTeam as switchTeamApi } from '../api/authClient'
 import { shouldRequireVerification } from '../utils/verification'
 import { useTranslation } from 'react-i18next'
 
@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [needs2FASetup, setNeeds2FASetup] = useState(false)
+  const [availableTeams, setAvailableTeams] = useState([])
   const { i18n } = useTranslation()
 
   // Check if running on macOS/Desktop
@@ -152,11 +153,29 @@ export function AuthProvider({ children }) {
     try {
       const userData = await login({ username, password })
       
+      // Check if user has multiple teams
+      if (userData.has_multiple_teams && userData.available_teams) {
+        // Store username and available teams for team selection
+        localStorage.setItem('username', username)
+        localStorage.setItem('availableTeams', JSON.stringify(userData.available_teams))
+        localStorage.setItem('tempUserData', JSON.stringify(userData))
+        setAvailableTeams(userData.available_teams)
+        
+        return { 
+          success: true, 
+          user: userData, 
+          requireTeamSelection: true,
+          available_teams: userData.available_teams
+        }
+      }
+      
+      // Single team - proceed with normal login
       // Store auth data with enhanced persistence
       localStorage.setItem('userId', userData.id)
       localStorage.setItem('teamId', userData.team_id)
       localStorage.setItem('teamSlug', userData.team_slug)
       localStorage.setItem('teamName', userData.team_name)
+      localStorage.setItem('username', username)
       localStorage.setItem('userData', JSON.stringify(userData))
       localStorage.setItem('lastActivity', Date.now().toString())
       localStorage.setItem('sessionCreated', Date.now().toString())
@@ -295,6 +314,99 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const selectTeamProfile = async (teamId, userId) => {
+    try {
+      // Get the temp user data stored during login
+      const tempUserData = JSON.parse(localStorage.getItem('tempUserData') || '{}')
+      
+      // Store selected team profile
+      localStorage.setItem('userId', userId)
+      localStorage.setItem('teamId', teamId)
+      
+      // Find the selected team in available teams
+      const availableTeamsData = JSON.parse(localStorage.getItem('availableTeams') || '[]')
+      const selectedTeam = availableTeamsData.find(t => t.team_id === teamId)
+      
+      if (selectedTeam) {
+        localStorage.setItem('teamSlug', selectedTeam.team_slug)
+        localStorage.setItem('teamName', selectedTeam.team_name)
+      }
+      
+      // Store user data
+      const userData = {
+        ...tempUserData,
+        id: userId,
+        team_id: teamId,
+        team_name: selectedTeam?.team_name,
+        team_slug: selectedTeam?.team_slug
+      }
+      
+      localStorage.setItem('userData', JSON.stringify(userData))
+      localStorage.setItem('lastActivity', Date.now().toString())
+      localStorage.setItem('sessionCreated', Date.now().toString())
+      
+      // Set user language if available
+      if (userData.language) {
+        i18n.changeLanguage(userData.language)
+      }
+      
+      setUser(userData)
+      
+      // Clean up temp data
+      localStorage.removeItem('tempUserData')
+      
+      return { success: true, user: userData }
+    } catch (error) {
+      console.error('Select team profile error:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  const switchTeam = async (teamId) => {
+    try {
+      const username = localStorage.getItem('username')
+      if (!username) {
+        throw new Error('Username not found')
+      }
+
+      const userData = await switchTeamApi({ username, teamId })
+      
+      // Update stored data
+      localStorage.setItem('userId', userData.id)
+      localStorage.setItem('teamId', userData.team_id)
+      localStorage.setItem('teamSlug', userData.team_slug)
+      localStorage.setItem('teamName', userData.team_name)
+      localStorage.setItem('userData', JSON.stringify(userData))
+      localStorage.setItem('lastActivity', Date.now().toString())
+      
+      // Set user language if available
+      if (userData.language) {
+        i18n.changeLanguage(userData.language)
+      }
+      
+      setUser(userData)
+      
+      return { success: true, user: userData }
+    } catch (error) {
+      console.error('Switch team error:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  const loadAvailableTeams = async () => {
+    try {
+      const username = localStorage.getItem('username')
+      if (!username) return []
+
+      const teams = await getUserTeams(username)
+      setAvailableTeams(teams)
+      return teams
+    } catch (error) {
+      console.error('Load available teams error:', error)
+      return []
+    }
+  }
+
   const value = {
     user,
     loading,
@@ -303,6 +415,10 @@ export function AuthProvider({ children }) {
     checkExistingSession,
     updateUserAvatar,
     updateUserLanguage,
+    selectTeamProfile,
+    switchTeam,
+    loadAvailableTeams,
+    availableTeams,
     isAuthenticated: !!user,
     needs2FASetup,
     setNeeds2FASetup

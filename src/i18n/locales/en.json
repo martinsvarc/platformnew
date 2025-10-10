@@ -252,6 +252,16 @@
     "changeLanguage": "Change Language",
     "czech": "Čeština",
     "english": "English"
+  },
+  "teamSelection": {
+    "title": "Select Team",
+    "subtitle": "You have access to multiple teams. Select which one you want to log into.",
+    "backToLogin": "Back to login"
+  },
+  "teamSwitcher": {
+    "switchTeam": "Switch Team",
+    "switched": "Team switched successfully",
+    "error": "Error switching teams"
   }
 }
 

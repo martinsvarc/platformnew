@@ -223,6 +223,16 @@
     "changeLanguage": "Změnit jazyk",
     "czech": "Čeština",
     "english": "English"
+  },
+  "teamSelection": {
+    "title": "Vyberte tým",
+    "subtitle": "Máte přístup k více týmům. Vyberte, do kterého se chcete přihlásit.",
+    "backToLogin": "Zpět na přihlášení"
+  },
+  "teamSwitcher": {
+    "switchTeam": "Přepnout tým",
+    "switched": "Tým byl úspěšně přepnut",
+    "error": "Chyba při přepínání týmu"
   }
 }
 

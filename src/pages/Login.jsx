@@ -78,8 +78,17 @@ function Login() {
       console.log('Login result:', result)
       
       if (result.success) {
-        // Check what type of verification/setup is required
-        if (result.require2FASetup) {
+        // Check if user has multiple teams
+        if (result.requireTeamSelection && result.available_teams) {
+          console.log('User has multiple teams, navigating to team selection')
+          // Navigate to team selection page
+          navigate('/team-selection', { 
+            state: { 
+              available_teams: result.available_teams,
+              userData: result.user
+            } 
+          })
+        } else if (result.require2FASetup) {
           console.log('Navigating to /starteam for 2FA setup')
           // First time user - show 2FA setup prompt (will appear on /starteam)
           navigate('/starteam')

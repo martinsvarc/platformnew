@@ -29,22 +29,22 @@ async function signup({ teamSlug, username, email, displayName, password, avatar
 
   const team = teams[0]
 
-  // Check if username already exists
+  // Check if username already exists IN THIS TEAM
   const existingUsers = await sql`
     select id
     from users
-    where username = ${username}
+    where username = ${username} and team_id = ${team.id} and deleted_at is null
   `
 
   if (existingUsers.length > 0) {
-    throw new Error('Uživatelské jméno již existuje')
+    throw new Error('Uživatelské jméno již existuje v tomto týmu')
   }
 
   // Check if email already exists in this team
   const existingEmails = await sql`
     select id
     from users
-    where email = ${email} and team_id = ${team.id}
+    where email = ${email} and team_id = ${team.id} and deleted_at is null
   `
 
   if (existingEmails.length > 0) {
@@ -56,6 +56,20 @@ async function signup({ teamSlug, username, email, displayName, password, avatar
   const hash = CryptoJS.PBKDF2(password, salt, { keySize: 256/32, iterations: 10000 }).toString()
   const encryptedPassword = CryptoJS.AES.encrypt(`${salt}$${hash}`, 'platform-secret-key').toString()
 
+  // If email already exists in another team, use same password and 2FA settings
+  let finalPasswordHash = encryptedPassword
+  const existingUserWithEmail = await sql`
+    select password_hash, pin_hash, two_fa_method, two_fa_setup_required
+    from users
+    where email = ${email} and deleted_at is null
+    limit 1
+  `
+
+  if (existingUserWithEmail.length > 0) {
+    finalPasswordHash = existingUserWithEmail[0].password_hash
+    console.log('Creating multi-team account for existing email:', email)
+  }
+
   // Set status based on role
   // Admin registrations are auto-approved, members need approval
   const status = role === 'admin' ? 'active' : 'pending'
@@ -63,7 +77,7 @@ async function signup({ teamSlug, username, email, displayName, password, avatar
   // Create user
   const [newUser] = await sql`
     insert into users (team_id, username, email, display_name, password_hash, avatar_url, role, status, two_fa_setup_required)
-    values (${team.id}, ${username}, ${email}, ${displayName}, ${encryptedPassword}, ${avatarUrl || null}, ${role}, ${status}, true)
+    values (${team.id}, ${username}, ${email}, ${displayName}, ${finalPasswordHash}, ${avatarUrl || null}, ${role}, ${status}, true)
     returning id, team_id, username, email, display_name, avatar_url, role, status, two_fa_setup_required
   `
 

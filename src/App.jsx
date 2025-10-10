@@ -15,6 +15,7 @@ import ProfilePicturePrompt from './components/ProfilePicturePrompt'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AdminStart from './pages/AdminStart'
+import TeamSelection from './pages/TeamSelection'
 import PINVerification from './pages/PINVerification'
 import PINSetup from './components/PINSetup'
 import TwoFASetupPrompt from './components/TwoFASetupPrompt'
@@ -38,6 +39,7 @@ function AppContent() {
   const isAuthPage = location.pathname === '/login' || 
                      location.pathname === '/register' || 
                      location.pathname === '/adminstart' || 
+                     location.pathname === '/team-selection' ||
                      location.pathname === '/pin-verify' ||
                      location.pathname === '/setup-pin'
   const isAdminPage = location.pathname === '/admin'
@@ -107,6 +109,7 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/adminstart" element={<AdminStart />} />
+          <Route path="/team-selection" element={<TeamSelection />} />
           
           {/* 2FA routes */}
           <Route path="/pin-verify" element={<PINVerification />} />

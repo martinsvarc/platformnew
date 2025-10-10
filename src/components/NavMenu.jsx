@@ -9,13 +9,15 @@ import LanguageSwitcher from './LanguageSwitcher'
 function NavMenu() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout, updateUserAvatar } = useAuth()
+  const { user, logout, updateUserAvatar, switchTeam, loadAvailableTeams, availableTeams } = useAuth()
   const { isCelebrating } = useCelebration()
   const { toast } = useToast()
   const { t } = useTranslation()
   const [isHovering, setIsHovering] = useState(false)
   const [showFireworks, setShowFireworks] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showTeamSwitcher, setShowTeamSwitcher] = useState(false)
+  const [teamSwitching, setTeamSwitching] = useState(false)
   const fileInputRef = useRef(null)
   const profilePicRef = useRef(null)
 
@@ -31,6 +33,13 @@ function NavMenu() {
       }, 2000)
     }
   }, [isCelebrating])
+
+  // Load available teams on mount
+  useEffect(() => {
+    if (user) {
+      loadAvailableTeams()
+    }
+  }, [user])
 
   const createFireParticles = () => {
     if (!profilePicRef.current) return
@@ -131,6 +140,32 @@ function NavMenu() {
       }
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleTeamSwitch = async (teamId) => {
+    if (teamId === user?.team_id) {
+      // Already in this team
+      setShowTeamSwitcher(false)
+      return
+    }
+
+    setTeamSwitching(true)
+    try {
+      const result = await switchTeam(teamId)
+      if (result.success) {
+        toast.success(t('teamSwitcher.switched', 'Tým byl úspěšně přepnut'))
+        setShowTeamSwitcher(false)
+        // Reload the page to refresh all data for the new team
+        window.location.reload()
+      } else {
+        toast.error(result.error || t('teamSwitcher.error', 'Chyba při přepínání týmu'))
+      }
+    } catch (error) {
+      console.error('Team switch error:', error)
+      toast.error(t('teamSwitcher.error', 'Chyba při přepínání týmu'))
+    } finally {
+      setTeamSwitching(false)
+    }
   }
 
   return (
@@ -266,6 +301,66 @@ function NavMenu() {
           </Link>
         ))}
       </nav>
+
+      {/* Team Switcher - Only show if user has multiple teams */}
+      {user?.role === 'admin' && availableTeams && availableTeams.length > 1 && (
+        <div className="px-4 py-2 border-t border-neon-orchid/20">
+          <button
+            onClick={() => setShowTeamSwitcher(!showTeamSwitcher)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-transparent text-pearl hover:bg-charcoal/20 hover:border-neon-orchid/20 hover:text-neon-orchid smooth-hover"
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-xl">🔄</span>
+              <span className="font-semibold">{t('teamSwitcher.switchTeam', 'Přepnout tým')}</span>
+            </div>
+            <svg 
+              className={`w-5 h-5 transition-transform ${showTeamSwitcher ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Team List Dropdown */}
+          {showTeamSwitcher && (
+            <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+              {availableTeams.map((team) => (
+                <button
+                  key={team.team_id}
+                  onClick={() => handleTeamSwitch(team.team_id)}
+                  disabled={teamSwitching}
+                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all ${
+                    team.team_id === user?.team_id
+                      ? 'bg-neon-orchid/20 border border-neon-orchid/40 text-neon-orchid'
+                      : 'bg-obsidian/40 border border-pearl/10 text-pearl hover:bg-obsidian/60 hover:border-neon-orchid/30'
+                  } ${teamSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {team.avatar_url ? (
+                    <img
+                      src={team.avatar_url}
+                      alt={team.team_name}
+                      className="w-8 h-8 rounded-full object-cover border border-neon-orchid/40"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neon-orchid/30 to-crimson/30 border border-neon-orchid/40 flex items-center justify-center">
+                      <span className="text-sm">🏢</span>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{team.team_name}</div>
+                    <div className="text-xs opacity-70 capitalize">{team.role}</div>
+                  </div>
+                  {team.team_id === user?.team_id && (
+                    <div className="w-2 h-2 bg-neon-orchid rounded-full"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Language Switcher */}
       <div className="px-4 py-2 border-t border-neon-orchid/20 flex justify-center">
