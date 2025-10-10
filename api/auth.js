@@ -330,10 +330,24 @@ async function switchTeam({ username, teamId }) {
     throw new Error('Team profile not found')
   }
 
-  const user = users[0]
+  let user = users[0]
 
   if (user.status !== 'active') {
-    throw new Error('This team profile is not active')
+    // If this email has any active profile elsewhere, auto-activate this one
+    const activeProfiles = await sql`
+      select 1 from users where email = ${user.email} and status = 'active' and deleted_at is null limit 1
+    `
+    if (activeProfiles.length > 0) {
+      const updated = await sql`
+        update users
+        set status = 'active'
+        where id = ${user.id}
+        returning id, team_id, username, email, display_name, avatar_url, role, status, language, two_fa_method, two_fa_setup_required
+      `
+      user = { ...user, ...updated[0] }
+    } else {
+      throw new Error('This team profile is not active')
+    }
   }
 
   // Update last login for the selected profile
