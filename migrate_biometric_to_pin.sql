@@ -4,7 +4,7 @@
 -- Update users with biometric 2FA to NULL (will trigger 2FA setup on next login)
 UPDATE users 
 SET two_fa_method = NULL,
-    two_fa_secret = NULL
+    two_fa_setup_required = true
 WHERE two_fa_method = 'biometric';
 
 -- Log the changes
