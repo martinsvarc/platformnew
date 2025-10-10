@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 import CryptoJS from 'crypto-js'
 
-const sql = neon(process.env.VITE_DATABASE_URL)
+const sql = neon(process.env.DATABASE_URL)
 
 function assertNonEmpty(value, field) {
   if (!value || String(value).trim() === '') {
