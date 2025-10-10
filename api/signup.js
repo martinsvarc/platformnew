@@ -16,18 +16,23 @@ async function signup({ teamSlug, username, email, displayName, password, avatar
   assertNonEmpty(displayName, 'zobrazované jméno')
   assertNonEmpty(password, 'heslo')
 
-  // Find team by slug
+  // Find team by slug, or create it if it doesn't exist (idempotent)
+  let team
   const teams = await sql`
     select id, name, slug
     from teams
     where slug = ${teamSlug}
   `
-
   if (teams.length === 0) {
-    throw new Error('Tým nenalezen')
+    const inserted = await sql`
+      insert into teams (name, slug)
+      values (${teamSlug}, ${teamSlug})
+      returning id, name, slug
+    `
+    team = inserted[0]
+  } else {
+    team = teams[0]
   }
-
-  const team = teams[0]
 
   // Check if username already exists IN THIS TEAM
   const existingUsers = await sql`
