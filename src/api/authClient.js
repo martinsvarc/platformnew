@@ -62,9 +62,6 @@ export async function setupPIN(userId, pinHash) {
   return callAuthAPI('setupPIN', { userId, pinHash })
 }
 
-export async function setupBiometric(userId) {
-  return callAuthAPI('setupBiometric', { userId })
-}
 
 export async function get2FASettings(userId) {
   return callAuthAPI('get2FASettings', { userId })

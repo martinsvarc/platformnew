@@ -15,7 +15,6 @@ import ProfilePicturePrompt from './components/ProfilePicturePrompt'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AdminStart from './pages/AdminStart'
-import BiometricVerification from './pages/BiometricVerification'
 import PINVerification from './pages/PINVerification'
 import PINSetup from './components/PINSetup'
 import TwoFASetupPrompt from './components/TwoFASetupPrompt'
@@ -39,7 +38,6 @@ function AppContent() {
   const isAuthPage = location.pathname === '/login' || 
                      location.pathname === '/register' || 
                      location.pathname === '/adminstart' || 
-                     location.pathname === '/biometric-verify' || 
                      location.pathname === '/pin-verify' ||
                      location.pathname === '/setup-pin'
   const isAdminPage = location.pathname === '/admin'
@@ -111,7 +109,6 @@ function AppContent() {
           <Route path="/adminstart" element={<AdminStart />} />
           
           {/* 2FA routes */}
-          <Route path="/biometric-verify" element={<BiometricVerification />} />
           <Route path="/pin-verify" element={<PINVerification />} />
           <Route path="/setup-pin" element={<PINSetup onComplete={() => handle2FASetupComplete('pin')} />} />
           

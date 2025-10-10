@@ -137,20 +137,6 @@ async function setupPIN(userId, pinHash) {
   return { success: true }
 }
 
-async function setupBiometric(userId) {
-  if (!userId) {
-    throw new Error('User ID is required')
-  }
-
-  await sql`
-    update users 
-    set two_fa_method = 'biometric',
-        two_fa_setup_required = false
-    where id = ${userId}
-  `
-
-  return { success: true }
-}
 
 async function get2FASettings(userId) {
   if (!userId) return null
@@ -226,10 +212,6 @@ export default async function handler(req, res) {
       
       case 'setupPIN':
         result = await setupPIN(params.userId, params.pinHash)
-        break
-      
-      case 'setupBiometric':
-        result = await setupBiometric(params.userId)
         break
       
       case 'get2FASettings':

@@ -26,15 +26,10 @@ function Login() {
   useEffect(() => {
     const session = checkExistingSession()
     if (session) {
-      console.log('Found existing session, redirecting to 2FA verification')
-      // User has a recent session - skip password and go straight to 2FA
-      if (session.twoFAMethod === 'biometric') {
-        localStorage.setItem('pendingBiometricVerification', 'true')
-        navigate('/biometric-verify')
-      } else if (session.twoFAMethod === 'pin') {
-        localStorage.setItem('pendingPINVerification', 'true')
-        navigate('/pin-verify')
-      }
+      console.log('Found existing session, redirecting to PIN verification')
+      // User has a recent session - skip password and go straight to PIN verification
+      localStorage.setItem('pendingPINVerification', 'true')
+      navigate('/pin-verify')
     }
   }, [checkExistingSession, navigate])
 
@@ -88,10 +83,6 @@ function Login() {
           console.log('Navigating to /starteam for 2FA setup')
           // First time user - show 2FA setup prompt (will appear on /starteam)
           navigate('/starteam')
-        } else if (result.requireBiometric) {
-          console.log('Navigating to /biometric-verify')
-          // User has biometric enabled - verify with Touch ID
-          navigate('/biometric-verify')
         } else if (result.requirePIN) {
           console.log('Navigating to /pin-verify')
           // User has PIN enabled - verify with PIN

@@ -1,16 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { login, getCurrentUser, logout as logoutApi, updateUserAvatar as updateAvatarApi, updateUserLanguage as updateLanguageApi, get2FASettings } from '../api/authClient'
-import { 
-  authenticateWithBiometric, 
-  isBiometricAvailable, 
-  isBiometricEnabled,
-  isPINEnabled,
-  disableBiometric,
-  disablePIN,
-  registerBiometric as registerBiometricAuth,
-  shouldRequireVerification,
-  get2FAMethod
-} from '../utils/biometric'
+import { shouldRequireVerification } from '../utils/verification'
 import { useTranslation } from 'react-i18next'
 
 const AuthContext = createContext()
@@ -26,7 +16,6 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [needs2FASetup, setNeeds2FASetup] = useState(false)
   const { i18n } = useTranslation()
 
@@ -41,14 +30,8 @@ export function AuthProvider({ children }) {
     // Check if user is logged in on app start
     const checkAuth = async () => {
       try {
-        // Check biometric availability
-        const bioAvailable = await isBiometricAvailable()
-        setBiometricAvailable(bioAvailable)
-
         const userId = localStorage.getItem('userId')
         const teamId = localStorage.getItem('teamId')
-        const biometricVerified = localStorage.getItem('biometricVerified')
-        const verificationTime = localStorage.getItem('verificationTime')
         
         if (userId && teamId) {
           const userData = await getCurrentUser(userId)
@@ -73,7 +56,6 @@ export function AuthProvider({ children }) {
             if (shouldRequireVerification()) {
               console.log('Daily verification required (past 3 AM Czech time)')
               localStorage.setItem('pending2FAVerification', 'true')
-              localStorage.removeItem('biometric_verified')
               localStorage.removeItem('pin_verified')
               localStorage.removeItem('verificationTime')
               setUser(userData) // Set user but they'll be redirected to verification
@@ -83,11 +65,10 @@ export function AuthProvider({ children }) {
             
             // Check if pending verification exists
             const pendingVerification = localStorage.getItem('pending2FAVerification')
-            const bioVerified = localStorage.getItem('biometric_verified')
             const pinVerified = localStorage.getItem('pin_verified')
             
-            if (pendingVerification === 'true' && bioVerified !== 'true' && pinVerified !== 'true') {
-              // User logged in but hasn't verified 2FA yet
+            if (pendingVerification === 'true' && pinVerified !== 'true') {
+              // User logged in but hasn't verified PIN yet
               setUser(userData)
             } else {
               setUser(userData)
@@ -121,24 +102,21 @@ export function AuthProvider({ children }) {
     // Set up periodic check for 3 AM Czech time (check every minute)
     const timeoutCheckInterval = setInterval(() => {
       const userId = localStorage.getItem('userId')
-      const bioVerified = localStorage.getItem('biometric_verified')
       const pinVerified = localStorage.getItem('pin_verified')
       
-      if (userId && (bioVerified === 'true' || pinVerified === 'true')) {
+      if (userId && pinVerified === 'true') {
         // Check if we need to require verification (past 3 AM Czech time)
         if (shouldRequireVerification()) {
           console.log('3 AM Czech time passed, requiring re-verification')
           // IMPORTANT: Only clear verification status, NOT session data
           // This allows user to re-verify without entering password
           localStorage.setItem('pending2FAVerification', 'true')
-          localStorage.removeItem('biometric_verified')
           localStorage.removeItem('pin_verified')
           localStorage.removeItem('verificationTime')
           // Keep: userId, teamId, userData, etc. for session persistence
           
-          // Redirect to appropriate verification page
-          const twoFAMethod = localStorage.getItem('two_fa_method') || 'biometric'
-          window.location.href = twoFAMethod === 'pin' ? '/pin-verify' : '/biometric-verify'
+          // Redirect to PIN verification page
+          window.location.href = '/pin-verify'
         }
       }
     }, 60000) // Check every minute
@@ -165,12 +143,12 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('teamName')
     localStorage.removeItem('userData')
     localStorage.removeItem('lastActivity')
-    localStorage.removeItem('pendingBiometricVerification')
-    localStorage.removeItem('biometricVerified')
+    localStorage.removeItem('pending2FAVerification')
+    localStorage.removeItem('pin_verified')
     localStorage.removeItem('verificationTime')
   }
 
-  const loginUser = async ({ username, password, enableBiometric = false }) => {
+  const loginUser = async ({ username, password }) => {
     try {
       const userData = await login({ username, password })
       
@@ -193,30 +171,19 @@ export function AuthProvider({ children }) {
       // Check if user needs to set up 2FA (first time setup or after reset)
       if (userData.two_fa_setup_required) {
         // Clear any old 2FA credentials from previous setup
-        localStorage.removeItem('biometric_credential')
-        localStorage.removeItem('biometric_enabled')
-        localStorage.removeItem('biometric_domain')
-        localStorage.removeItem('biometric_verified')
         localStorage.removeItem('pin_credential')
         localStorage.removeItem('pin_enabled')
         localStorage.removeItem('pin_verified')
         localStorage.removeItem('two_fa_method')
-        localStorage.removeItem('pendingBiometricVerification')
         localStorage.removeItem('pendingPINVerification')
         
         // User needs to set up 2FA - they'll see the setup prompt
         localStorage.setItem('pending2FASetup', 'true')
-        return { success: true, user: userData, requireBiometric: false, require2FASetup: true }
+        return { success: true, user: userData, require2FASetup: true }
       }
 
-      // Check user's 2FA method preference (if they already have 2FA set up)
-      if (userData.two_fa_method === 'biometric') {
-        // User has biometric enabled - redirect to biometric verification
-        localStorage.setItem('pendingBiometricVerification', 'true')
-        localStorage.removeItem('biometricVerified')
-        localStorage.setItem('two_fa_method', 'biometric')
-        return { success: true, user: userData, requireBiometric: true }
-      } else if (userData.two_fa_method === 'pin') {
+      // Check user's 2FA method preference (if they already have PIN set up)
+      if (userData.two_fa_method === 'pin') {
         // User has PIN enabled - redirect to PIN verification
         localStorage.setItem('pendingPINVerification', 'true')
         localStorage.removeItem('pin_verified')
@@ -225,7 +192,7 @@ export function AuthProvider({ children }) {
       }
       
       // No 2FA set up yet (shouldn't happen, but handle gracefully)
-      return { success: true, user: userData, requireBiometric: false }
+      return { success: true, user: userData, require2FASetup: true }
     } catch (error) {
       return { success: false, error: error.message }
     }
@@ -265,43 +232,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const loginWithBiometric = async () => {
-    try {
-      if (!biometricAvailable) {
-        throw new Error('Biometric authentication is not available on this device')
-      }
-
-      if (!isBiometricEnabled()) {
-        throw new Error('Biometric authentication is not set up')
-      }
-
-      // Authenticate with biometric
-      const result = await authenticateWithBiometric()
-      
-      if (result.success && result.userId) {
-        // Get user data from server
-        const userData = await getCurrentUser(result.userId)
-        
-        if (userData) {
-          // Store auth data
-          localStorage.setItem('userId', userData.id)
-          localStorage.setItem('teamId', userData.team_id)
-          localStorage.setItem('lastActivity', Date.now().toString())
-          localStorage.setItem('sessionCreated', Date.now().toString())
-          
-          setUser(userData)
-          return { success: true, user: userData }
-        } else {
-          throw new Error('User not found')
-        }
-      } else {
-        throw new Error('Biometric authentication failed')
-      }
-    } catch (error) {
-      console.error('Biometric login error:', error)
-      return { success: false, error: error.message }
-    }
-  }
 
   const logoutUser = async () => {
     try {
@@ -318,28 +248,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const registerBiometric = async () => {
-    try {
-      if (!user) {
-        throw new Error('No user logged in')
-      }
-
-      if (!biometricAvailable) {
-        throw new Error('Biometric authentication is not available on this device')
-      }
-
-      await registerBiometricAuth(user.id, user.username)
-      return { success: true }
-    } catch (error) {
-      console.error('Register biometric error:', error)
-      return { success: false, error: error.message }
-    }
-  }
-
-  const disableBiometricAuth = () => {
-    disableBiometric()
-    return { success: true }
-  }
 
   const updateUserAvatar = async (avatarUrl) => {
     try {
@@ -391,16 +299,11 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login: loginUser,
-    loginWithBiometric,
     logout: logoutUser,
     checkExistingSession,
     updateUserAvatar,
     updateUserLanguage,
-    registerBiometric,
-    disableBiometricAuth,
     isAuthenticated: !!user,
-    biometricAvailable,
-    biometricEnabled: isBiometricEnabled(),
     needs2FASetup,
     setNeeds2FASetup
   }
