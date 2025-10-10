@@ -168,6 +168,50 @@ async function verifyUserPIN(userId, pinHash) {
   return users[0].pin_hash === pinHash
 }
 
+async function changeUserPassword(userId, teamId, newPassword) {
+  if (!userId || !teamId) {
+    throw new Error('User ID and Team ID are required')
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('Heslo musí mít alespoň 6 znaků')
+  }
+
+  // Verify user belongs to team
+  const users = await sql`
+    select id from users 
+    where id = ${userId} and team_id = ${teamId}
+  `
+
+  if (users.length === 0) {
+    throw new Error('User not found in team')
+  }
+
+  // Generate salt for password
+  const salt = CryptoJS.lib.WordArray.random(128/8).toString()
+
+  // Hash password with PBKDF2
+  const hash = CryptoJS.PBKDF2(newPassword, salt, { 
+    keySize: 256/32, 
+    iterations: 10000 
+  }).toString()
+
+  // Combine salt and hash
+  const combined = `${salt}$${hash}`
+
+  // Encrypt with AES
+  const encryptedPassword = CryptoJS.AES.encrypt(combined, 'platform-secret-key').toString()
+
+  // Update user password
+  await sql`
+    update users 
+    set password_hash = ${encryptedPassword}
+    where id = ${userId} and team_id = ${teamId}
+  `
+
+  return { success: true }
+}
+
 // Vercel serverless function handler
 export default async function handler(req, res) {
   // Set CORS headers
@@ -220,6 +264,10 @@ export default async function handler(req, res) {
       
       case 'verifyUserPIN':
         result = await verifyUserPIN(params.userId, params.pinHash)
+        break
+      
+      case 'changeUserPassword':
+        result = await changeUserPassword(params.userId, params.teamId, params.newPassword)
         break
       
       default:

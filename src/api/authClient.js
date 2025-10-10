@@ -71,3 +71,7 @@ export async function verifyUserPIN(userId, pinHash) {
   return callAuthAPI('verifyUserPIN', { userId, pinHash })
 }
 
+export async function changeUserPassword(userId, teamId, newPassword) {
+  return callAuthAPI('changeUserPassword', { userId, teamId, newPassword })
+}
+

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getTeamUsers, deleteUser, updateUser, confirmUser, declineUser, reset2FA } from '../api/queries'
+import { changeUserPassword } from '../api/authClient'
 import { TEAM_ID } from '../api/config'
 import { useConfirm } from '../hooks/useConfirm'
 import { useToast } from '../contexts/ToastContext'
@@ -14,6 +15,10 @@ function TeamMembersWidget() {
   const [error, setError] = useState('')
   const [editingUserId, setEditingUserId] = useState(null)
   const [editedName, setEditedName] = useState('')
+  const [changingPasswordUserId, setChangingPasswordUserId] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   const loadMembers = async () => {
     if (!TEAM_ID) return
@@ -136,6 +141,48 @@ function TeamMembersWidget() {
     }
   }
 
+  const handleOpenPasswordChange = (userId) => {
+    setChangingPasswordUserId(userId)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordError('')
+  }
+
+  const handleClosePasswordChange = () => {
+    setChangingPasswordUserId(null)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordError('')
+  }
+
+  const handleChangePassword = async () => {
+    setPasswordError('')
+
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('Heslo musí mít alespoň 6 znaků')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Hesla se neshodují')
+      return
+    }
+
+    const member = members.find(m => m.id === changingPasswordUserId)
+    const memberName = member?.display_name || member?.username
+
+    try {
+      setError('')
+      await changeUserPassword(changingPasswordUserId, TEAM_ID, newPassword)
+      toast.success(`Heslo pro uživatele "${memberName}" bylo úspěšně změněno`)
+      handleClosePasswordChange()
+    } catch (err) {
+      console.error('Failed to change password:', err)
+      setPasswordError(err.message || 'Změna hesla selhala')
+      toast.error('Změna hesla selhala')
+    }
+  }
+
   const getRoleBadge = (role) => {
     const badges = {
       admin: { text: 'Admin', color: 'bg-crimson/30 text-crimson border-crimson/50' },
@@ -163,9 +210,97 @@ function TeamMembersWidget() {
   const pendingMembers = members.filter(m => m.status === 'pending')
   const activeMembers = members.filter(m => m.status !== 'pending')
 
+  const changingMember = members.find(m => m.id === changingPasswordUserId)
+
   return (
     <>
       <ConfirmDialog />
+      
+      {/* Password Change Modal */}
+      {changingPasswordUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-gradient-to-br from-charcoal to-obsidian rounded-2xl border border-sunset-gold/30 shadow-2xl p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-sunset-gold to-amber-500 flex items-center justify-center">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gradient-gold mb-2">
+                Změnit heslo
+              </h2>
+              <p className="text-pearl/70 text-sm">
+                {changingMember?.display_name || changingMember?.username}
+              </p>
+            </div>
+
+            {passwordError && (
+              <div className="mb-4 p-3 bg-crimson/20 border border-crimson/50 rounded-lg text-crimson text-sm">
+                {passwordError}
+              </div>
+            )}
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-pearl/70 text-sm font-medium mb-2">
+                  Nové heslo
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleChangePassword()
+                    } else if (e.key === 'Escape') {
+                      handleClosePasswordChange()
+                    }
+                  }}
+                  className="w-full bg-obsidian border border-sunset-gold/30 rounded-lg px-4 py-3 text-pearl focus:border-sunset-gold focus:shadow-glow-gold outline-none transition-all"
+                  placeholder="Minimálně 6 znaků"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-pearl/70 text-sm font-medium mb-2">
+                  Potvrdit heslo
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleChangePassword()
+                    } else if (e.key === 'Escape') {
+                      handleClosePasswordChange()
+                    }
+                  }}
+                  className="w-full bg-obsidian border border-sunset-gold/30 rounded-lg px-4 py-3 text-pearl focus:border-sunset-gold focus:shadow-glow-gold outline-none transition-all"
+                  placeholder="Zadejte heslo znovu"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleClosePasswordChange}
+                className="flex-1 px-4 py-3 rounded-lg bg-velvet-gray/40 hover:bg-velvet-gray/60 text-pearl font-medium transition-all"
+              >
+                Zrušit
+              </button>
+              <button
+                onClick={handleChangePassword}
+                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-sunset-gold to-amber-500 text-white font-medium hover:shadow-glow-gold transition-all"
+              >
+                Změnit heslo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="unified-glass p-4">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-lg font-bold text-gradient-gold">{t('admin.teamMembers')}</h2>
@@ -340,9 +475,17 @@ function TeamMembersWidget() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => handleOpenPasswordChange(member.id)}
+                        className="px-3 py-1 rounded-lg bg-sunset-gold/20 hover:bg-sunset-gold/40 text-sunset-gold text-sm font-medium transition-all border border-sunset-gold/50"
+                        title="Změnit heslo"
+                      >
+                        🔑 Heslo
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleReset2FA(member.id, member.display_name, member.username)}
                         className="px-3 py-1 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-400 text-sm font-medium transition-all border border-yellow-500/50"
-                        title="Resetovat 2FA (PIN/Touch ID)"
+                        title="Resetovat 2FA (PIN)"
                       >
                         🔐 Reset 2FA
                       </button>
